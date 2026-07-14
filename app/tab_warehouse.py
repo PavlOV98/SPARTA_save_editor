@@ -26,12 +26,8 @@ class WarehouseTab(QWidget):
     def _setup_ui(self):
         layout = QVBoxLayout(self)
 
-        label = QLabel(
-            "Склад оборудования (storedEquipment). "
-            "Выберите предмет слева, редактируйте параметры справа."
-        )
-        label.setWordWrap(True)
-        label.setStyleSheet("color: #666; padding: 4px;")
+        label = QLabel("Склад оборудования (storedEquipment)")
+        label.setStyleSheet("font-weight: bold; font-size: 13px; padding: 2px;")
         layout.addWidget(label)
 
         splitter = QSplitter()

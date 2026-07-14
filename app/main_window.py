@@ -18,6 +18,7 @@ from app.tab_file import FileTab
 from app.tab_global import GlobalTab
 from app.tab_characters import CharactersTab
 from app.tab_warehouse import WarehouseTab
+from app.tab_rawfile import RawFileTab
 
 
 class MainWindow(QMainWindow):
@@ -51,11 +52,13 @@ class MainWindow(QMainWindow):
         self.tab_global = GlobalTab()
         self.tab_characters = CharactersTab()
         self.tab_warehouse = WarehouseTab()
+        self.tab_rawfile = RawFileTab()
 
         self.tabs.addTab(self.tab_file, "📁 Выбор файла")
         self.tabs.addTab(self.tab_global, "🌍 Глобальные параметры")
         self.tabs.addTab(self.tab_characters, "👤 Редактор персонажей")
         self.tabs.addTab(self.tab_warehouse, "📦 Склад")
+        self.tabs.addTab(self.tab_rawfile, "📄 Файл")
 
         layout.addWidget(self.tabs)
 
@@ -143,6 +146,7 @@ class MainWindow(QMainWindow):
         self.tab_global.set_data(self.json_data)
         self.tab_characters.set_data(self.json_data)
         self.tab_warehouse.set_data(self.json_data)
+        self.tab_rawfile.set_data(self.json_data)
 
         self.tabs.setCurrentIndex(0)
 
