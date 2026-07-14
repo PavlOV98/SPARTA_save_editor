@@ -5,24 +5,23 @@ import json
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QMessageBox, QTextEdit, QTreeWidget, QTreeWidgetItem,
-    QTabWidget, QLineEdit, QSpinBox, QComboBox, QFormLayout,
-    QSplitter, QScrollArea,
+    QMessageBox, QTreeWidget, QTreeWidgetItem,
+    QLineEdit, QSplitter,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 
-# Роли для хранения данных в QTreeWidgetItem
 ROLE_KEY = Qt.ItemDataRole.UserRole + 1
 ROLE_VALUE = Qt.ItemDataRole.UserRole + 2
 ROLE_IS_CONTAINER = Qt.ItemDataRole.UserRole + 3
-ROLE_CONTAINER_TYPE = Qt.ItemDataRole.UserRole + 4  # 'dict' или 'list'
-ROLE_PARENT_PATH = Qt.ItemDataRole.UserRole + 5
+ROLE_CONTAINER_TYPE = Qt.ItemDataRole.UserRole + 4
 
 
 class JsonTree(QTreeWidget):
-    """Дерево для отображения JSON с возможностью сворачивания."""
+    """Дерево для отображения JSON."""
+
+    MAX_DEPTH = 30
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -36,24 +35,18 @@ class JsonTree(QTreeWidget):
     def load_json(self, data: dict):
         self.clear()
         self.setUpdatesEnabled(False)
-        root = self.invisibleRootItem()
 
+        root = self.invisibleRootItem()
         for key, value in data.items():
-            item = self._build_item(key, value)
+            item = self._build_item(key, value, 0)
             root.addChild(item)
 
-        # Разворачиваем только первый уровень (чтобы избежать краха)
-        for i in range(root.childCount()):
-            child = root.child(i)
-            if child.childCount() > 0:
-                self.expandItem(child)
+        # Не разворачиваем ничего — пользователь раскроет сам
         self.setUpdatesEnabled(True)
 
-    MAX_DEPTH = 50
-
-    def _build_item(self, key: str, value, _depth: int = 0) -> QTreeWidgetItem:
-        if _depth > self.MAX_DEPTH:
-            item = QTreeWidgetItem([str(key), "... (мах глубина)"])
+    def _build_item(self, key: str, value, depth: int) -> QTreeWidgetItem:
+        if depth > self.MAX_DEPTH:
+            item = QTreeWidgetItem([str(key), "... (глубина)"])
             item.setData(0, ROLE_KEY, key)
             item.setData(0, ROLE_VALUE, str(value)[:200])
             item.setData(0, ROLE_IS_CONTAINER, False)
@@ -69,7 +62,7 @@ class JsonTree(QTreeWidget):
                 QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator
             )
             for k, v in value.items():
-                child = self._build_item(k, v, _depth + 1)
+                child = self._build_item(k, v, depth + 1)
                 item.addChild(child)
 
         elif isinstance(value, list):
@@ -82,7 +75,7 @@ class JsonTree(QTreeWidget):
                 QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator
             )
             for i, v in enumerate(value):
-                child = self._build_item(f"[{i}]", v, _depth + 1)
+                child = self._build_item(f"[{i}]", v, depth + 1)
                 item.addChild(child)
 
         else:
@@ -95,7 +88,6 @@ class JsonTree(QTreeWidget):
         return item
 
     def to_dict(self) -> dict:
-        """Собрать JSON обратно из дерева."""
         root = self.invisibleRootItem()
         result = {}
         for i in range(root.childCount()):
@@ -139,25 +131,24 @@ class JsonTree(QTreeWidget):
 
 
 class RawFileTab(QWidget):
-    """Вкладка для просмотра и редактирования всего файла сохранения целиком."""
+    """Вкладка для просмотра и редактирования всего файла сохранения."""
 
     def __init__(self):
         super().__init__()
         self.json_data: dict | None = None
+        self._tree_built = False
 
         self._setup_ui()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
 
-        # Верхняя панель
         top_layout = QHBoxLayout()
         top_layout.addWidget(QLabel("Файл сохранения — сворачиваемое дерево JSON"))
         top_layout.addStretch()
 
-        # Кнопки развернуть/свернуть всё
         btn_expand = QPushButton("▶ Развернуть всё")
-        btn_expand.clicked.connect(lambda: self.tree.expandAll())
+        btn_expand.clicked.connect(self._safe_expand_all)
         top_layout.addWidget(btn_expand)
 
         btn_collapse = QPushButton("◀ Свернуть всё")
@@ -166,15 +157,12 @@ class RawFileTab(QWidget):
 
         layout.addLayout(top_layout)
 
-        # Основной сплиттер: дерево + панель редактирования
         splitter = QSplitter()
 
-        # Дерево JSON
         self.tree = JsonTree()
         self.tree.itemClicked.connect(self._on_item_clicked)
         splitter.addWidget(self.tree)
 
-        # Правая панель: редактирование
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
 
@@ -203,7 +191,6 @@ class RawFileTab(QWidget):
 
         layout.addWidget(splitter)
 
-        # Нижняя панель: кнопки и статус
         btn_layout = QHBoxLayout()
 
         btn_save_memory = QPushButton("💾 Сохранить в память (из дерева)")
@@ -220,11 +207,22 @@ class RawFileTab(QWidget):
 
         layout.addLayout(btn_layout)
 
-    # ---- Загрузка данных ----
+    def _safe_expand_all(self):
+        """Безопасное разворачивание с заморозкой обновлений."""
+        self.tree.setUpdatesEnabled(False)
+        self.tree.expandAll()
+        self.tree.setUpdatesEnabled(True)
 
     def set_data(self, data: dict):
+        """Загрузить данные — дерево строится лениво, при открытии вкладки."""
         self.json_data = data
-        self._refresh()
+        self.tree.clear()
+        self._tree_built = False
+        size_str = self._format_size(len(json.dumps(data, ensure_ascii=False)))
+        self.status_label.setText(
+            f"Размер: {size_str} | Разделов: {len(data)} | "
+            f"Нажмите «Обновить дерево из памяти» для отображения"
+        )
 
     def _refresh(self):
         """Обновить дерево из json_data."""
@@ -234,15 +232,16 @@ class RawFileTab(QWidget):
             return
 
         self.tree.load_json(self.json_data)
+        self._tree_built = True
         size_str = self._format_size(len(json.dumps(self.json_data, ensure_ascii=False)))
         self.status_label.setText(
-            f"Размер: {size_str} | Разделов: {len(self.json_data)}"
+            f"Размер: {size_str} | Разделов: {len(self.json_data)} | "
+            f"Кликните ▶ чтобы развернуть"
         )
 
     # ---- Редактирование ----
 
     def _on_item_clicked(self, item: QTreeWidgetItem, column: int):
-        """Клик по элементу дерева."""
         is_container = item.data(0, ROLE_IS_CONTAINER)
         key = item.data(0, ROLE_KEY)
         value = item.data(0, ROLE_VALUE)
@@ -251,7 +250,7 @@ class RawFileTab(QWidget):
 
         if is_container:
             self.edit_value.setEnabled(False)
-            self.edit_value.setText(f"(контейнер — {len(item.childCount())} элементов)")
+            self.edit_value.setText(f"(контейнер)")
         else:
             self.edit_value.setEnabled(True)
             if value is None:
@@ -262,20 +261,16 @@ class RawFileTab(QWidget):
                 self.edit_value.setText(str(value))
 
     def _apply_edit(self):
-        """Применить отредактированное значение."""
         item = self.tree.currentItem()
         if item is None:
             return
-
         is_container = item.data(0, ROLE_IS_CONTAINER)
         if is_container:
             return
-
         text = self.edit_value.text().strip()
         old_value = item.data(0, ROLE_VALUE)
         key = item.data(0, ROLE_KEY)
 
-        # Пробуем преобразовать к исходному типу
         new_value = self._convert_value(text, old_value)
         item.setData(0, ROLE_VALUE, new_value)
         item.setText(1, self.tree._format_value(new_value))
@@ -283,16 +278,13 @@ class RawFileTab(QWidget):
         self.status_label.setText(f"✅ Поле '{key}' = {new_value}")
 
     def _remove_field(self):
-        """Удалить выбранное поле."""
         item = self.tree.currentItem()
         if item is None:
             return
-
         parent = item.parent()
         if parent is None:
             QMessageBox.warning(self, "Ошибка", "Нельзя удалить корневой элемент.")
             return
-
         key = item.data(0, ROLE_KEY)
         reply = QMessageBox.question(
             self, "Подтверждение",
@@ -304,14 +296,17 @@ class RawFileTab(QWidget):
             self.status_label.setText(f"🗑 Поле '{key}' удалено")
 
     def _save_tree_to_memory(self):
-        """Сохранить изменения из дерева в json_data."""
         if self.json_data is None:
+            return
+        if not self._tree_built:
+            QMessageBox.information(self, "Дерево не активно",
+                                    "Сначала откройте вкладку «Файл», чтобы построить дерево.")
             return
 
         try:
             parsed = self.tree.to_dict()
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", f"Не удалось собрать данные из дерева:\n{e}")
+            QMessageBox.critical(self, "Ошибка", f"Не удалось собрать данные:\n{e}")
             return
 
         self.json_data.clear()
