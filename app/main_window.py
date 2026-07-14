@@ -18,6 +18,7 @@ from app.tab_characters import CharactersTab
 from app.tab_warehouse import WarehouseTab
 from app.tab_equipment import EquipmentTab
 from app.tab_weapons import WeaponsTab
+from app.logger import setup_logging, get_logger
 
 
 class MainWindow(QMainWindow):
@@ -26,12 +27,17 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        self.logger = setup_logging()
+        self.logger.info("=== SPARTA Save Editor запуск ===")
+
         self.current_file: Path | None = None
         self.json_data: dict | None = None
         self.localization: dict[str, str] = {}
 
         self._setup_ui()
         self._setup_menu()
+
+        self.logger.info("Интерфейс инициализирован")
 
     def _setup_ui(self):
         self.setWindowTitle("SPARTA Save Editor")
@@ -56,12 +62,12 @@ class MainWindow(QMainWindow):
         self.tab_file.file_opened.connect(self._on_file_opened)
         self.tab_file.localization_loaded.connect(self._on_localization_loaded)
 
-        self.tabs.addTab(self.tab_file, "[FOLDER]  Выбор файла")
-        self.tabs.addTab(self.tab_global, "[GLOB]  Глобальные параметры")
-        self.tabs.addTab(self.tab_characters, "[CHAR]  Редактор персонажей")
-        self.tabs.addTab(self.tab_warehouse, "[BOX]  Склад")
-        self.tabs.addTab(self.tab_equipment, "[GEAR]  Оборудование")
-        self.tabs.addTab(self.tab_weapons, "[GUN]  Оружие")
+        self.tabs.addTab(self.tab_file, "📁 Выбор файла")
+        self.tabs.addTab(self.tab_global, "🌍 Глобальные параметры")
+        self.tabs.addTab(self.tab_characters, "👤 Редактор персонажей")
+        self.tabs.addTab(self.tab_warehouse, "📦 Склад")
+        self.tabs.addTab(self.tab_equipment, "⚙ Оборудование")
+        self.tabs.addTab(self.tab_weapons, "🔫 Оружие")
 
         layout.addWidget(self.tabs)
 
@@ -149,28 +155,45 @@ class MainWindow(QMainWindow):
         self._load_file(Path(path))
 
     def _load_file(self, path: Path):
+        self.logger.info(f"Загрузка файла: {path}")
         try:
             with open(path, "r", encoding="utf-8") as f:
                 self.json_data = json.load(f)
+            self.logger.info(f"JSON загружен, разделов: {len(self.json_data)}")
         except Exception as e:
+            self.logger.error(f"Ошибка открытия файла: {e}")
             QMessageBox.critical(self, "Ошибка", f"Не удалось открыть файл:\n{e}")
             return
 
         if not isinstance(self.json_data, dict):
+            self.logger.warning("Файл не содержит JSON-объект")
             QMessageBox.critical(self, "Ошибка", "Файл должен содержать JSON-объект (dict).")
             return
 
         self.current_file = path
         self.status_bar.showMessage(f"Открыт: {path.name}")
 
-        self.tab_file.set_data(self.json_data)
-        self.tab_global.set_data(self.json_data)
-        self.tab_characters.set_data(self.json_data)
-        self.tab_warehouse.set_data(self.json_data)
+        try:
+            self.logger.info("Загрузка данных во вкладки...")
+            self.tab_file.set_data(self.json_data)
+            self.logger.info("tab_file OK")
+            self.tab_global.set_data(self.json_data)
+            self.logger.info("tab_global OK")
+            self.tab_characters.set_data(self.json_data)
+            self.logger.info("tab_characters OK")
+            self.tab_warehouse.set_data(self.json_data)
+            self.logger.info("tab_warehouse OK")
 
-        # Разблокируем вкладки
-        self._set_tabs_enabled(True)
-        self.tabs.setCurrentIndex(0)
+            self._set_tabs_enabled(True)
+            self.tabs.setCurrentIndex(0)
+            self.logger.info("Файл загружен успешно")
+        except Exception as e:
+            self.logger.error(f"КРИТИЧЕСКАЯ ОШИБКА при загрузке: {e}", exc_info=True)
+            QMessageBox.critical(
+                self, "Ошибка",
+                f"Произошла ошибка при загрузке данных.\n"
+                f"Подробности в логе: {Path.home() / '.sparta_save_editor' / 'editor.log'}"
+            )
 
     def _save_file(self):
         if self.current_file is None:

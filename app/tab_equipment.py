@@ -151,11 +151,11 @@ class EquipmentTab(QWidget):
         self.path_edit.setReadOnly(True)
         top_layout.addWidget(self.path_edit, 1)
 
-        btn_load = QPushButton("[OPEN]  Загрузить")
+        btn_load = QPushButton("📂 Загрузить")
         btn_load.clicked.connect(self._load_file)
         top_layout.addWidget(btn_load)
 
-        btn_auto = QPushButton("[SEARCH]  Из папки игры")
+        btn_auto = QPushButton("🔍 Из папки игры")
         btn_auto.clicked.connect(self._auto_find)
         top_layout.addWidget(btn_auto)
 
@@ -165,13 +165,13 @@ class EquipmentTab(QWidget):
         self.sparta_tab = _FactionSubTab("Спарта", is_sparta=True)
         self.enemy_tab = _FactionSubTab("Враги", is_sparta=False)
 
-        self.tabs.addTab(self.sparta_tab, "[SHIELD]  Спарта")
-        self.tabs.addTab(self.enemy_tab, "[SKULL]  Враги")
+        self.tabs.addTab(self.sparta_tab, "🛡 Спарта")
+        self.tabs.addTab(self.enemy_tab, "☠ Враги")
 
         layout.addWidget(self.tabs)
 
         btn_layout = QHBoxLayout()
-        btn_save = QPushButton("[SAVE]  Сохранить в файл")
+        btn_save = QPushButton("💾 Сохранить в файл")
         btn_save.clicked.connect(self._save_to_file)
         btn_layout.addWidget(btn_save)
 
@@ -218,7 +218,7 @@ class EquipmentTab(QWidget):
         self.enemy_tab.set_data(enemy_items, all_keys)
 
         self.status_label.setText(
-            f"[OK]  Загружено: {len(self.equipment_dict)} предметов "
+            f"✅ Загружено: {len(self.equipment_dict)} предметов "
             f"(Спарта: {len(sparta_items)}, Враги: {len(enemy_items)})"
         )
 
@@ -264,7 +264,7 @@ class EquipmentTab(QWidget):
         try:
             with open(self.file_path, "w", encoding="utf-8") as f:
                 json.dump(merged, f, ensure_ascii=False, indent=2)
-            self.status_label.setText(f"[OK]  Сохранено: {self.file_path}")
+            self.status_label.setText(f"✅ Сохранено: {self.file_path}")
             QMessageBox.information(self, "Сохранено",
                                     f"Файл сохранён:\n{self.file_path}")
         except Exception as e:
@@ -297,7 +297,7 @@ class _FactionSubTab(QWidget):
         # Чекбокс синхронизации (только для Спарты)
         if self.is_sparta:
             sync_row = QHBoxLayout()
-            self.sync_check = QCheckBox("[SYNC]  Синхронизировать покупное и найденное")
+            self.sync_check = QCheckBox("🔄 Синхронизировать покупное и найденное")
             self.sync_check.setChecked(True)
             self.sync_check.toggled.connect(self._on_sync_toggled)
             sync_row.addWidget(self.sync_check)
@@ -313,7 +313,7 @@ class _FactionSubTab(QWidget):
 
         search_row = QHBoxLayout()
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("[SEARCH]  Поиск...")
+        self.search_edit.setPlaceholderText("🔍 Поиск...")
         self.search_edit.textChanged.connect(self._filter)
         search_row.addWidget(self.search_edit)
 
@@ -346,7 +346,7 @@ class _FactionSubTab(QWidget):
 
         # Кнопки
         btn_layout = QHBoxLayout()
-        btn_apply = QPushButton("[OK]  Применить")
+        btn_apply = QPushButton("✅ Применить")
         btn_apply.clicked.connect(self._apply)
         btn_layout.addWidget(btn_apply)
 
@@ -447,9 +447,9 @@ class _FactionSubTab(QWidget):
         item_data = self.items[key]
         loc_name = self._get_item_name(key, item_data)
         if loc_name:
-            self.item_name.setText(f"[BOX]  {key} - {loc_name}")
+            self.item_name.setText(f"📦 {key} - {loc_name}")
         else:
-            self.item_name.setText(f"[BOX]  {key}")
+            self.item_name.setText(f"📦 {key}")
         self._build_fields(item_data)
 
     SPECIAL_KEYS = {"armorSettings", "abilitiesSettings", "characterProperty", "AbilitiesSettings"}
@@ -591,7 +591,7 @@ class _FactionSubTab(QWidget):
         parent = self.window()
         if hasattr(parent, 'statusBar'):
             parent.statusBar().showMessage(
-                f"[OK]  {self._current_key} обновлён", 3000
+                f"✅ {self._current_key} обновлён", 3000
             )
 
     def _reset(self):

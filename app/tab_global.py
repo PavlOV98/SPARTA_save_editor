@@ -107,7 +107,7 @@ class GlobalTab(QWidget):
 
         # Кнопка применения
         if self._currency_widgets or self._faction_widgets:
-            btn = QPushButton("[SYNC]  Применить (сохранится при Ctrl+S)")
+            btn = QPushButton("🔄 Применить (сохранится при Ctrl+S)")
             btn.clicked.connect(self._show_info)
             self.main_layout.addWidget(btn)
 

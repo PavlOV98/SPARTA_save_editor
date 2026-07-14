@@ -41,7 +41,7 @@ class FileTab(QWidget):
         layout.addWidget(QLabel("Настройте пути к папкам:"))
 
         row1 = QHBoxLayout()
-        btn_saves = QPushButton("[FOLDER]  Папка с сохранениями")
+        btn_saves = QPushButton("📁 Папка с сохранениями")
         btn_saves.setMinimumHeight(34)
         btn_saves.clicked.connect(self._select_saves_folder)
         row1.addWidget(btn_saves)
@@ -51,7 +51,7 @@ class FileTab(QWidget):
         layout.addLayout(row1)
 
         row2 = QHBoxLayout()
-        btn_game = QPushButton("[GAME]  Папка с игрой")
+        btn_game = QPushButton("🎮 Папка с игрой")
         btn_game.setMinimumHeight(34)
         btn_game.clicked.connect(self._select_game_folder)
         row2.addWidget(btn_game)
@@ -62,7 +62,7 @@ class FileTab(QWidget):
 
         # Строка 3: файл локализации
         row3 = QHBoxLayout()
-        btn_locale = QPushButton("[LANG]  Файл локализации")
+        btn_locale = QPushButton("🌐 Файл локализации")
         btn_locale.setMinimumHeight(34)
         btn_locale.clicked.connect(self._select_locale_file)
         row3.addWidget(btn_locale)
@@ -74,7 +74,7 @@ class FileTab(QWidget):
         layout.addSpacing(12)
 
         row4 = QHBoxLayout()
-        self.btn_open = QPushButton("[OPEN]  Открыть файл сохранения")
+        self.btn_open = QPushButton("📂 Открыть файл сохранения")
         self.btn_open.setMinimumHeight(38)
         self.btn_open.clicked.connect(self._open_file)
         row4.addWidget(self.btn_open)
@@ -133,7 +133,7 @@ class FileTab(QWidget):
         self.localization = load_localization(file_path)
         count = len(self.localization)
         self.info_label.setText(
-            f"[OK]  Загружено строк локализации: {count}"
+            f"✅ Загружено строк локализации: {count}"
         )
         self.localization_loaded.emit(self.localization)
 
