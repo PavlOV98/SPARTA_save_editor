@@ -183,10 +183,19 @@ class BuildingsTab(QWidget):
             group = QGroupBox("📋 Статусы")
             status_layout = QVBoxLayout(group)
 
-            # Ищем Training и другие статусы
-            for status_key in ["Training", "Relax", "Treatment", "Injury"]:
+            # Ищем все релевантные статусы
+            for status_key in ["Training", "Relax", "Arriving",
+                               "InjuredEasy", "InjuredMedium", "InjuredHard"]:
                 status_data = statuses.get(status_key)
                 if not isinstance(status_data, dict):
+                    continue
+
+                # Пропускаем, если нет ни одного поля для показа
+                has_fields = any(k in status_data for k in
+                                 ["minDays", "maxDays"])
+                has_appliance = isinstance(status_data.get("applianceSettings"), dict)
+                has_reward = isinstance(status_data.get("rewardOnCompleteSettings"), dict)
+                if not (has_fields or has_appliance or has_reward):
                     continue
 
                 status_group = QGroupBox(f"  {status_key}")
@@ -207,6 +216,17 @@ class BuildingsTab(QWidget):
                     w.setValue(int(status_data["maxDays"]))
                     form.addRow("Макс. дней:", w)
                     self._widgets[f"statuses.{status_key}.maxDays"] = w
+
+                # applianceSettings.receivedDamagePercentMin
+                appliance = status_data.get("applianceSettings")
+                if isinstance(appliance, dict) and "receivedDamagePercentMin" in appliance:
+                    w = QDoubleSpinBox()
+                    w.setRange(0, 100)
+                    w.setDecimals(2)
+                    w.setSingleStep(0.05)
+                    w.setValue(float(appliance["receivedDamagePercentMin"]))
+                    form.addRow("Порог урона (receivedDamagePercentMin):", w)
+                    self._widgets[f"statuses.{status_key}.appliance.receivedDamagePercentMin"] = w
 
                 # rewardOnCompleteSettings.exp
                 reward = status_data.get("rewardOnCompleteSettings")
@@ -255,6 +275,9 @@ class BuildingsTab(QWidget):
                 elif field == "reward" and parts[3] == "exp":
                     reward = status_data.setdefault("rewardOnCompleteSettings", {})
                     reward["exp"] = widget.value()
+                elif field == "appliance" and parts[3] == "receivedDamagePercentMin":
+                    appliance = status_data.setdefault("applianceSettings", {})
+                    appliance["receivedDamagePercentMin"] = widget.value()
 
         try:
             with open(self.file_path, "w", encoding="utf-8") as f:
