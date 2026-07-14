@@ -18,6 +18,7 @@ from app.tab_characters import CharactersTab
 from app.tab_warehouse import WarehouseTab
 from app.tab_equipment import EquipmentTab
 from app.tab_weapons import WeaponsTab
+from app.tab_buildings import BuildingsTab
 from app.logger import setup_logging, get_logger
 
 
@@ -57,6 +58,7 @@ class MainWindow(QMainWindow):
         self.tab_warehouse = WarehouseTab()
         self.tab_equipment = EquipmentTab()
         self.tab_weapons = WeaponsTab()
+        self.tab_buildings = BuildingsTab()
 
         # Подключаем сигналы ДО авто-загрузки
         self.tab_file.file_opened.connect(self._on_file_opened)
@@ -68,6 +70,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.tab_warehouse, "📦 Склад")
         self.tabs.addTab(self.tab_equipment, "⚙ Оборудование")
         self.tabs.addTab(self.tab_weapons, "🔫 Оружие")
+        self.tabs.addTab(self.tab_buildings, "🏪 Строения")
 
         layout.addWidget(self.tabs)
 
@@ -82,6 +85,7 @@ class MainWindow(QMainWindow):
         # Авто-загрузка оборудования и оружия из папки игры
         self.tab_equipment.auto_load()
         self.tab_weapons.auto_load()
+        self.tab_buildings.auto_load()
 
         # Начальное состояние: вкладки заблокированы (кроме 0)
         self._set_tabs_enabled(False)
