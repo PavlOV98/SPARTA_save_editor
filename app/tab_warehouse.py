@@ -104,7 +104,6 @@ class WarehouseTab(QWidget):
             self.equipment_dict = {}
 
         self._populate_list()
-        self._update_total()
 
     def _populate_list(self, filter_text: str = ""):
         """Заполнить список предметов с фильтром."""
@@ -147,18 +146,6 @@ class WarehouseTab(QWidget):
         """Фильтровать список."""
         self._populate_list(text)
 
-    def _update_total(self):
-        """Обновить общую информацию."""
-        if not self.equipment_dict:
-            self.total_items_label.setText("")
-            return
-
-        total_count = sum(self.equipment_dict.values())
-        total_items = len(self.equipment_dict)
-        self.total_items_label.setText(
-            f"Всего единиц: {total_count} | Уникальных предметов: {total_items}"
-        )
-
     def _on_item_selected(self, row: int):
         """Выбор предмета."""
         if row < 0:
@@ -195,7 +182,6 @@ class WarehouseTab(QWidget):
 
         self.equipment_dict[self._current_key] = self.count_spin.value()
         self._populate_list(self.search_edit.text())
-        self._update_total()
         self.status_message(f"✅ {self._current_key} = {self.count_spin.value()}")
 
     def _reset_current(self):
@@ -220,7 +206,6 @@ class WarehouseTab(QWidget):
             self.count_spin.setValue(0)
             self.item_name_label.setText("Предмет не выбран")
             self._populate_list(self.search_edit.text())
-            self._update_total()
             self.status_message(f"🗑 Предмет удалён")
 
     def status_message(self, msg: str):
