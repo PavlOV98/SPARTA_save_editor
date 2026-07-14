@@ -436,28 +436,50 @@ class _FactionSubTab(QWidget):
             self.item_name.setText(f"📦 {key}")
         self._build_fields(item_data)
 
+    SPECIAL_KEYS = {"armorSettings", "abilitiesSettings", "characterProperty", "AbilitiesSettings"}
+
     def _build_fields(self, data: dict):
-        """Построить поля формы, разделив на основную и дополнительную секции."""
+        """Построить поля формы, разделив на секции."""
         self._clear_form()
         self._fields.clear()
 
         primary_keys = []
+        special_keys = []
         secondary_keys = []
+
         for key in data.keys():
             if key in ITEM_SECONDARY_FIELDS:
                 secondary_keys.append(key)
+            elif key in self.SPECIAL_KEYS:
+                special_keys.append(key)
             else:
                 primary_keys.append(key)
 
         # Первая секция (основные поля)
-        first = True
         for key in primary_keys:
             value = data[key]
             w = self._make_widget(value)
             self.form_layout.addRow(f"{key}:", w)
             self._fields[key] = w
 
-        # Разделитель
+        # Секция специальных параметров (armorSettings, abilitiesSettings)
+        if special_keys:
+            line = QFrame()
+            line.setFrameShape(QFrame.Shape.HLine)
+            line.setFrameShadow(QFrame.Shadow.Sunken)
+            self.form_layout.addRow(line)
+
+            label = QLabel("Редактирование параметров")
+            label.setStyleSheet("font-weight: bold; color: #666; padding: 4px 0;")
+            self.form_layout.addRow(label)
+
+            for key in special_keys:
+                value = data[key]
+                w = self._make_widget(value)
+                self.form_layout.addRow(f"{key}:", w)
+                self._fields[key] = w
+
+        # Вторая секция (визуальные/текстовые поля)
         if secondary_keys:
             line = QFrame()
             line.setFrameShape(QFrame.Shape.HLine)
@@ -468,7 +490,6 @@ class _FactionSubTab(QWidget):
             label.setStyleSheet("font-weight: bold; color: #666; padding: 4px 0;")
             self.form_layout.addRow(label)
 
-            # Вторая секция (визуальные/текстовые поля)
             for key in secondary_keys:
                 value = data[key]
                 w = self._make_widget(value)
