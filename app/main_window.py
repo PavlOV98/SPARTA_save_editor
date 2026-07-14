@@ -76,6 +76,10 @@ class MainWindow(QMainWindow):
         # Авто-загрузка локализации после подключения сигналов
         self.tab_file.auto_load_localization()
 
+        # Авто-загрузка оборудования и оружия из папки игры
+        self.tab_equipment.auto_load()
+        self.tab_weapons.auto_load()
+
         # Начальное состояние: вкладки заблокированы (кроме 0)
         self._set_tabs_enabled(False)
 

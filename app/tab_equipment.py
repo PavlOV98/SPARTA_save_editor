@@ -118,6 +118,22 @@ class EquipmentTab(QWidget):
 
         self._setup_ui()
 
+    def auto_load(self):
+        """Авто-загрузка из папки игры, если путь сохранён."""
+        settings = QSettings("SPARTA Tools", "SPARTA Save Editor")
+        game_folder = settings.value("game_folder", "")
+        if not game_folder:
+            return
+        candidates = [
+            Path(game_folder) / "Sparta_Data" / "StreamingAssets" / "Configs" / "Modules" / "ItemModuleConfig.json",
+            Path(game_folder) / "Configs" / "Modules" / "ItemModuleConfig.json",
+            Path(game_folder) / "ItemModuleConfig.json",
+        ]
+        for c in candidates:
+            if c.exists():
+                self._load_file(str(c))
+                return
+
     def set_localization(self, loc: dict[str, str]):
         self._localization = loc
         self.sparta_tab.set_localization(loc)
