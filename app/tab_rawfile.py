@@ -214,15 +214,9 @@ class RawFileTab(QWidget):
         self.tree.setUpdatesEnabled(True)
 
     def set_data(self, data: dict):
-        """Загрузить данные — дерево строится лениво, при открытии вкладки."""
+        """Загрузить данные."""
         self.json_data = data
-        self.tree.clear()
-        self._tree_built = False
-        size_str = self._format_size(len(json.dumps(data, ensure_ascii=False)))
-        self.status_label.setText(
-            f"Размер: {size_str} | Разделов: {len(data)} | "
-            f"Нажмите «Обновить дерево из памяти» для отображения"
-        )
+        self._refresh()
 
     def _refresh(self):
         """Обновить дерево из json_data."""
