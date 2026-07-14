@@ -30,7 +30,8 @@ class FileTab(QWidget):
 
         self._setup_ui()
 
-        # Авто-загрузка локализации при старте
+    def auto_load_localization(self):
+        """Авто-загрузка локализации (вызывается после подключения сигналов)."""
         if self.locale_file and Path(self.locale_file).is_file():
             self._load_localization(self.locale_file)
 

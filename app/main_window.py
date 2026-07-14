@@ -54,6 +54,10 @@ class MainWindow(QMainWindow):
         self.tab_weapons = WeaponsTab()
         self.tab_rawfile = RawFileTab()
 
+        # Подключаем сигналы ДО авто-загрузки
+        self.tab_file.file_opened.connect(self._on_file_opened)
+        self.tab_file.localization_loaded.connect(self._on_localization_loaded)
+
         self.tabs.addTab(self.tab_file, "📁 Выбор файла")
         self.tabs.addTab(self.tab_global, "🌍 Глобальные параметры")
         self.tabs.addTab(self.tab_characters, "👤 Редактор персонажей")
@@ -69,9 +73,8 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("Готов")
 
-        # Сигналы
-        self.tab_file.file_opened.connect(self._on_file_opened)
-        self.tab_file.localization_loaded.connect(self._on_localization_loaded)
+        # Авто-загрузка локализации после подключения сигналов
+        self.tab_file.auto_load_localization()
 
         # Начальное состояние: вкладки заблокированы (кроме 0)
         self._set_tabs_enabled(False)

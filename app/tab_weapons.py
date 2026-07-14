@@ -390,7 +390,9 @@ class _WeaponSubTab(QWidget):
                 display = f"{key} — {loc_name}  [{wclass}]  ({price}$)"
             else:
                 display = f"{key}  [{wclass}]  ({price}$)"
-            self.item_list.addItem(display)
+            item_w = QListWidgetItem(display)
+            item_w.setData(Qt.ItemDataRole.UserRole, key)
+            self.item_list.addItem(item_w)
             shown += 1
 
         self.count_label.setText(f"Показано: {shown} / Всего: {len(self.items)}")
@@ -408,10 +410,9 @@ class _WeaponSubTab(QWidget):
         item_w = self.item_list.item(row)
         if not item_w:
             return
-        text = item_w.text()
-        key = text.split("  [")[0]
 
-        if key not in self.items:
+        key = item_w.data(Qt.ItemDataRole.UserRole)
+        if not key or key not in self.items:
             return
 
         self._current_key = key
