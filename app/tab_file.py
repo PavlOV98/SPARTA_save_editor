@@ -17,7 +17,7 @@ class FileTab(QWidget):
     """Вкладка для выбора папок и открытия файла сохранения."""
 
     file_opened = pyqtSignal(Path)
-    localization_loaded = pyqtSignal(dict)  # словарь ключ->значение
+    localization_loaded = pyqtSignal(dict)
 
     def __init__(self):
         super().__init__()
@@ -26,7 +26,7 @@ class FileTab(QWidget):
         self.settings = QSettings("SPARTA Tools", "SPARTA Save Editor")
         self.saves_folder: str = self.settings.value("saves_folder", "")
         self.game_folder: str = self.settings.value("game_folder", "")
-        self.locale_folder: str = self.settings.value("locale_folder", "")
+        self.locale_file: str = self.settings.value("locale_file", "")
 
         self._setup_ui()
 
@@ -55,13 +55,13 @@ class FileTab(QWidget):
         row2.addWidget(self.label_game, 1)
         layout.addLayout(row2)
 
-        # Строка 3: локализация
+        # Строка 3: файл локализации
         row3 = QHBoxLayout()
-        btn_locale = QPushButton("🌐 Папка с локализацией")
+        btn_locale = QPushButton("🌐 Файл локализации")
         btn_locale.setMinimumHeight(34)
-        btn_locale.clicked.connect(self._select_locale_folder)
+        btn_locale.clicked.connect(self._select_locale_file)
         row3.addWidget(btn_locale)
-        self.label_locale = QLabel(self.locale_folder if self.locale_folder else "Не указана")
+        self.label_locale = QLabel(self.locale_file if self.locale_file else "Не выбран")
         self.label_locale.setStyleSheet("color: #888; font-size: 11px;")
         row3.addWidget(self.label_locale, 1)
         layout.addLayout(row3)
@@ -106,26 +106,20 @@ class FileTab(QWidget):
         self.settings.setValue("game_folder", folder)
         self.label_game.setText(folder)
 
-    def _select_locale_folder(self):
-        # По умолчанию предлагаем путь от папки игры
-        default_path = ""
-        if self.game_folder:
-            default_path = str(
-                Path(self.game_folder) / "Sparta_Data" / "StreamingAssets" / "Localizations"
-            )
-        folder = QFileDialog.getExistingDirectory(
-            self, "Выберите папку с локализацией (Localizations)",
-            default_path or self.locale_folder or "",
+    def _select_locale_file(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Выберите файл локализации", "",
+            "Все файлы (*)",
         )
-        if not folder:
+        if not path:
             return
-        self.locale_folder = folder
-        self.settings.setValue("locale_folder", folder)
-        self.label_locale.setText(folder)
-        self._load_localization(folder)
+        self.locale_file = path
+        self.settings.setValue("locale_file", path)
+        self.label_locale.setText(path)
+        self._load_localization(path)
 
-    def _load_localization(self, folder: str):
-        self.localization = load_localization(folder)
+    def _load_localization(self, file_path: str):
+        self.localization = load_localization(file_path)
         count = len(self.localization)
         self.info_label.setText(
             f"✅ Загружено строк локализации: {count}"

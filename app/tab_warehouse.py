@@ -91,18 +91,7 @@ class WarehouseTab(QWidget):
 
         layout.addWidget(splitter)
 
-        # Нижняя панель: информация
-        info_layout = QHBoxLayout()
-        self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("🔍 Поиск предмета...")
-        self.search_edit.textChanged.connect(self._filter_list)
-        info_layout.addWidget(self.search_edit)
 
-        self.total_items_label = QLabel("")
-        self.total_items_label.setStyleSheet("color: #555;")
-        info_layout.addWidget(self.total_items_label)
-
-        layout.addLayout(info_layout)
 
     def set_data(self, data: dict):
         """Загрузить данные склада."""

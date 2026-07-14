@@ -2,67 +2,37 @@
 
 from __future__ import annotations
 from pathlib import Path
-import re
+import json
 
 
-def load_localization(folder_path: str | Path) -> dict[str, str]:
-    """Загрузить файл локализации из папки Localizations.
+def load_localization(file_path: str | Path) -> dict[str, str]:
+    """Загрузить файл локализации (JSON-словарь ключ->значение).
 
-    Формат: текстовый файл с ключами и значениями, разделёнными знаком '='.
-    Файлы: Russian (основной), English (запасной).
-    Возвращает словарь ключ->значение.
+    Файл без расширения, содержимое — JSON-объект вида {"key": "value"}.
     """
-    folder = Path(folder_path)
-    if not folder.is_dir():
+    p = Path(file_path)
+    if not p.is_file():
+        return {}
+
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return {}
+
+    if not isinstance(data, dict):
         return {}
 
     result = {}
-
-    # Приоритет: Russian, English, любые другие
-    candidates = []
-    for f in sorted(folder.iterdir()):
-        if f.is_file() and not f.name.startswith('.'):
-            candidates.append(f)
-
-    # Сортируем так, чтобы Russian и English были первыми
-    def sort_key(p: Path):
-        name = p.name.lower()
-        if name == 'russian':
-            return 0
-        elif name == 'english':
-            return 1
-        else:
-            return 2
-
-    for f in sorted(candidates, key=sort_key):
-        try:
-            with open(f, "r", encoding="utf-8") as fh:
-                for line in fh:
-                    line = line.strip()
-                    if not line or line.startswith(";") or line.startswith("#") or line.startswith("//"):
-                        continue
-                    if "=" in line:
-                        key, value = line.split("=", 1)
-                        key = key.strip()
-                        value = value.strip()
-                        if key and value and key not in result:
-                            result[key] = value
-        except Exception:
-            continue
-
-        # Если уже загрузили достаточно — можно прерваться
-        if len(result) > 1000:
-            break
+    for key, value in data.items():
+        if isinstance(value, str):
+            result[str(key)] = value
 
     return result
 
 
 def get_item_name(localization: dict[str, str], item_name_key: str | None) -> str:
-    """Получить название предмета из локализации по ключу itemName.
-    
-    Ключ itemName выглядит как "item/name/SpartaArmorT1".
-    В локализации строка: "item/name/SpartaArmorT1=Броня Спарты"
-    """
+    """Получить название предмета из локализации по ключу itemName."""
     if not item_name_key or not localization:
         return ""
     return localization.get(item_name_key, "")
