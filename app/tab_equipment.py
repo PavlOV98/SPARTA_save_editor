@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 import json
+import re
 import os
 from pathlib import Path
+from typing import Optional
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
@@ -12,14 +14,12 @@ from PyQt6.QtWidgets import (
     QMessageBox, QTabWidget, QTextEdit, QComboBox, QCheckBox,
     QGroupBox, QGridLayout,
 )
-from typing import Optional
 from PyQt6.QtCore import Qt, QSettings
 from PyQt6.QtGui import QFont
 
 
 def is_enemy_item(key: str) -> bool:
     """Определяет, относится ли предмет к врагам."""
-    # Прямые маркеры врагов
     if key.startswith("Enemy"):
         return True
     if key.startswith("SuicideBelt"):
@@ -32,15 +32,75 @@ def is_enemy_item(key: str) -> bool:
         return True
     if key.startswith("MachineArmor"):
         return True
-    # Суффиксы вражеских фракций
     enemy_suffixes = ("_Wolves", "_Orphans", "_G9", "_DRONE_PC", "_FRONT_PC")
     for suffix in enemy_suffixes:
         if key.endswith(suffix):
             return True
-    # Специальный случай: FireGrenade_FRONT (без _T0)
     if key == "FireGrenade_FRONT":
         return True
     return False
+
+
+def find_base_key(key: str, all_keys: set) -> str | None:
+    """Найти базовый (оригинальный) предмет для дубля с припиской P/PT/_loot.
+
+    Например: ArmorPlatePT1 → ArmorPlateT1, FragGrenadeP → FragGrenade.
+    Если базовый ключ не найден — возвращает None (не дубль).
+    """
+    # _loot → база
+    if key.endswith("_loot"):
+        base = key[:-5]
+        if base in all_keys:
+            return base
+
+    # PT + число → T + число  (SpartaArmorPT1 → SpartaArmorT1)
+    # PT на конце → без PT   (ScanGrenadePT → ScanGrenade)
+    m = re.match(r'^(.*)PT(\d*)$', key)
+    if m:
+        prefix = m.group(1)
+        num = m.group(2)
+        # T + число
+        base = prefix + 'T' + num
+        if base in all_keys:
+            return base
+        # просто число (ScanGrenadePT → ScanGrenade нет T-варианта)
+        if prefix in all_keys:
+            return prefix
+        # число без T (MinePT2 → Mine2? нет, но MineT2 есть — уже проверили)
+        if num:
+            base2 = prefix + num
+            if base2 in all_keys:
+                return base2
+
+    # P на конце (FragGrenadeP → FragGrenade)
+    if key.endswith('P') and not key.endswith('PT'):
+        base = key[:-1]
+        if base in all_keys:
+            return base
+
+    # _PT1 → _T1 (MobileTurret_PT1 → MobileTurret_T1)
+    m = re.match(r'^(.*)_PT(\d*)$', key)
+    if m:
+        prefix = m.group(1)
+        num = m.group(2)
+        base = prefix + '_T' + num
+        if base in all_keys:
+            return base
+
+    return None
+
+
+def get_duplicates(base_key: str, all_keys: set) -> list[str]:
+    """Найти все дубли (с PT/P/_loot) для базового ключа."""
+    dupes = []
+    for k in all_keys:
+        if k == base_key:
+            continue
+        if find_base_key(k, all_keys) == base_key:
+            dupes.append(k)
+    # Также проверяем, может сам base_key быть найден как чей-то дубль?
+    # Нет, мы ищем дубли именно для base_key
+    return dupes
 
 
 class EquipmentTab(QWidget):
@@ -57,7 +117,6 @@ class EquipmentTab(QWidget):
     def _setup_ui(self):
         layout = QVBoxLayout(self)
 
-        # Верхняя панель: путь и загрузка
         top_layout = QHBoxLayout()
 
         self.path_edit = QLineEdit()
@@ -77,17 +136,15 @@ class EquipmentTab(QWidget):
 
         layout.addLayout(top_layout)
 
-        # Табы: Спарта / Враги
         self.tabs = QTabWidget()
-        self.sparta_tab = _FactionSubTab("Спарта")
-        self.enemy_tab = _FactionSubTab("Враги")
+        self.sparta_tab = _FactionSubTab("Спарта", is_sparta=True)
+        self.enemy_tab = _FactionSubTab("Враги", is_sparta=False)
 
         self.tabs.addTab(self.sparta_tab, "🛡 Спарта")
         self.tabs.addTab(self.enemy_tab, "☠ Враги")
 
         layout.addWidget(self.tabs)
 
-        # Кнопки сохранения
         btn_layout = QHBoxLayout()
         btn_save = QPushButton("💾 Сохранить в файл")
         btn_save.clicked.connect(self._save_to_file)
@@ -100,7 +157,6 @@ class EquipmentTab(QWidget):
         layout.addLayout(btn_layout)
 
     def _load_file(self, path: Optional[str] = None):
-        """Загрузить файл ItemModuleConfig."""
         if not path:
             from PyQt6.QtWidgets import QFileDialog
             path, _ = QFileDialog.getOpenFileName(
@@ -124,7 +180,7 @@ class EquipmentTab(QWidget):
         self.file_path = path
         self.path_edit.setText(path)
 
-        # Разделяем на Спарту и врагов
+        all_keys = set(self.equipment_dict.keys())
         sparta_items = {}
         enemy_items = {}
         for key, value in self.equipment_dict.items():
@@ -133,8 +189,8 @@ class EquipmentTab(QWidget):
             else:
                 sparta_items[key] = value
 
-        self.sparta_tab.set_data(sparta_items)
-        self.enemy_tab.set_data(enemy_items)
+        self.sparta_tab.set_data(sparta_items, all_keys)
+        self.enemy_tab.set_data(enemy_items, all_keys)
 
         self.status_label.setText(
             f"✅ Загружено: {len(self.equipment_dict)} предметов "
@@ -142,7 +198,6 @@ class EquipmentTab(QWidget):
         )
 
     def _auto_find(self):
-        """Автоматически найти файл из папки игры (из QSettings)."""
         settings = QSettings("SPARTA Tools", "SPARTA Save Editor")
         game_folder = settings.value("game_folder", "")
         if not game_folder:
@@ -152,7 +207,6 @@ class EquipmentTab(QWidget):
             )
             return
 
-        # Ищем Configs/Modules/ItemModuleConfig.json
         candidates = [
             Path(game_folder) / "Sparta_Data" / "StreamingAssets" / "Configs" / "Modules" / "ItemModuleConfig.json",
             Path(game_folder) / "Configs" / "Modules" / "ItemModuleConfig.json",
@@ -170,13 +224,11 @@ class EquipmentTab(QWidget):
         )
 
     def _save_to_file(self):
-        """Сохранить изменения."""
         if not self.file_path:
             QMessageBox.warning(self, "Файл не загружен",
                                 "Сначала загрузите ItemModuleConfig.json.")
             return
 
-        # Собираем данные из обеих вкладок
         sparta_data = self.sparta_tab.collect()
         enemy_data = self.enemy_tab.collect()
 
@@ -197,16 +249,33 @@ class EquipmentTab(QWidget):
 class _FactionSubTab(QWidget):
     """Подвкладка для списка предметов одной фракции."""
 
-    def __init__(self, title: str):
+    def __init__(self, title: str, is_sparta: bool = True):
         super().__init__()
         self.title = title
+        self.is_sparta = is_sparta
         self.items: dict[str, dict] = {}
+        self._all_keys: set = set()
         self._current_key: str | None = None
+        self._sync_enabled: bool = True  # галочка по умолчанию нажата
+        # Кэш: оригинальный ключ → какие дубли у него
+        self._base_to_dupes: dict[str, list[str]] = {}
+        # Список дублей (ключей, которые скрыты)
+        self._duplicate_keys: set = set()
 
         self._setup_ui()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
+
+        # Чекбокс синхронизации (только для Спарты)
+        if self.is_sparta:
+            sync_row = QHBoxLayout()
+            self.sync_check = QCheckBox("🔄 Синхронизировать покупное и найденное")
+            self.sync_check.setChecked(True)
+            self.sync_check.toggled.connect(self._on_sync_toggled)
+            sync_row.addWidget(self.sync_check)
+            sync_row.addStretch()
+            layout.addLayout(sync_row)
 
         splitter = QSplitter()
 
@@ -240,7 +309,6 @@ class _FactionSubTab(QWidget):
         self.item_name.setStyleSheet("font-weight: bold; font-size: 13px;")
         right_layout.addWidget(self.item_name)
 
-        # Форма с автоподставными полями
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         form_widget = QWidget()
@@ -262,33 +330,59 @@ class _FactionSubTab(QWidget):
         right_layout.addLayout(btn_layout)
 
         splitter.addWidget(right_widget)
-        splitter.setSizes([280, 600])
+        splitter.setSizes([350, 550])
 
         layout.addWidget(splitter)
 
-    def set_data(self, items: dict[str, dict]):
+    def set_data(self, items: dict[str, dict], all_keys: set):
         """Загрузить данные."""
         self.items = items
+        self._all_keys = all_keys
+
+        # Строим карту дублей
+        self._base_to_dupes = {}
+        self._duplicate_keys = set()
+
+        if self.is_sparta:
+            for key in items.keys():
+                base = find_base_key(key, all_keys)
+                if base and base in items:
+                    # Это дубль
+                    self._duplicate_keys.add(key)
+                    if base not in self._base_to_dupes:
+                        self._base_to_dupes[base] = []
+                    self._base_to_dupes[base].append(key)
+
         self._populate_list()
 
+    def _on_sync_toggled(self, enabled: bool):
+        """Вкл/выкл синхронизацию."""
+        self._sync_enabled = enabled
+        self._populate_list(self.search_edit.text())
+
     def _populate_list(self, filter_text: str = ""):
-        """Заполнить список."""
+        """Заполнить список с учётом синхронизации."""
         self.item_list.blockSignals(True)
         self.item_list.clear()
 
+        shown = 0
         for key in sorted(self.items.keys()):
+            # Если синхронизация вкл — скрываем дубли
+            if self._sync_enabled and key in self._duplicate_keys:
+                continue
+
             if filter_text and filter_text.lower() not in key.lower():
                 continue
 
             item = self.items[key]
-            # Пытаемся показать тип/цену
             price = item.get("price", "?")
             item_type = item.get("itemCharacteristicsType",
                                   item.get("itemType", "?"))
             display = f"{key}  [{item_type}]  ({price}$)"
             self.item_list.addItem(display)
+            shown += 1
 
-        self.count_label.setText(f"Всего: {len(self.items)}")
+        self.count_label.setText(f"Показано: {shown} / Всего: {len(self.items)}")
         self.item_list.blockSignals(False)
 
         if self.item_list.count() > 0 and self._current_key is None:
@@ -301,11 +395,10 @@ class _FactionSubTab(QWidget):
         """Выбор предмета."""
         if row < 0:
             return
-        item = self.item_list.item(row)
-        if not item:
+        item_w = self.item_list.item(row)
+        if not item_w:
             return
-        text = item.text()
-        # Извлекаем ключ (до первого пробела "[")
+        text = item_w.text()
         key = text.split("  [")[0] if "  [" in text else text.split("  (")[0]
 
         if key not in self.items:
@@ -316,7 +409,7 @@ class _FactionSubTab(QWidget):
         self._build_fields(self.items[key])
 
     def _build_fields(self, data: dict):
-        """Построить поля формы на основе ключей предмета."""
+        """Построить поля формы."""
         self._clear_form()
         self._fields.clear()
 
@@ -346,28 +439,54 @@ class _FactionSubTab(QWidget):
             self.form_layout.addRow(f"{key}:", w)
             self._fields[key] = w
 
+    def _sync_duplicates(self, base_key: str, field_changes: dict):
+        """Синхронизировать изменения с дублями."""
+        if not self._sync_enabled or base_key not in self._base_to_dupes:
+            return
+
+        for dupe_key in self._base_to_dupes[base_key]:
+            if dupe_key not in self.items:
+                continue
+            dupe_data = self.items[dupe_key]
+            for field_key, value in field_changes.items():
+                if field_key in dupe_data:
+                    dupe_data[field_key] = value
+
+    def _get_field_values(self) -> dict:
+        """Собрать значения из полей формы."""
+        values = {}
+        for key, widget in self._fields.items():
+            if isinstance(widget, QSpinBox):
+                values[key] = widget.value()
+            elif isinstance(widget, QDoubleSpinBox):
+                values[key] = widget.value()
+            elif isinstance(widget, QComboBox):
+                values[key] = widget.currentText() == "true"
+            else:
+                text = widget.text()
+                if text and text[0] in ('{', '['):
+                    try:
+                        values[key] = json.loads(text)
+                    except json.JSONDecodeError:
+                        values[key] = text
+                else:
+                    values[key] = text if text != "null" else None
+        return values
+
     def _apply(self):
         """Применить изменения к текущему предмету."""
         if not self._current_key or self._current_key not in self.items:
             return
 
         data = self.items[self._current_key]
-        for key, widget in self._fields.items():
-            if isinstance(widget, QSpinBox):
-                data[key] = widget.value()
-            elif isinstance(widget, QDoubleSpinBox):
-                data[key] = widget.value()
-            elif isinstance(widget, QComboBox):
-                data[key] = widget.currentText() == "true"
-            else:
-                text = widget.text()
-                if text and text[0] in ('{', '['):
-                    try:
-                        data[key] = json.loads(text)
-                    except json.JSONDecodeError:
-                        data[key] = text
-                else:
-                    data[key] = text if text != "null" else None
+        changes = self._get_field_values()
+
+        for key, value in changes.items():
+            data[key] = value
+
+        # Синхронизируем дубли
+        if self._sync_enabled and self._current_key in self._base_to_dupes:
+            self._sync_duplicates(self._current_key, changes)
 
         self._populate_list(self.search_edit.text())
         parent = self.window()
