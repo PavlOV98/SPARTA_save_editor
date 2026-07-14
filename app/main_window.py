@@ -17,6 +17,7 @@ from PyQt6.QtGui import QAction, QIcon
 from app.tab_file import FileTab
 from app.tab_global import GlobalTab
 from app.tab_characters import CharactersTab
+from app.tab_warehouse import WarehouseTab
 
 
 class MainWindow(QMainWindow):
@@ -49,10 +50,12 @@ class MainWindow(QMainWindow):
         self.tab_file = FileTab()
         self.tab_global = GlobalTab()
         self.tab_characters = CharactersTab()
+        self.tab_warehouse = WarehouseTab()
 
         self.tabs.addTab(self.tab_file, "📁 Выбор файла")
         self.tabs.addTab(self.tab_global, "🌍 Глобальные параметры")
         self.tabs.addTab(self.tab_characters, "👤 Редактор персонажей")
+        self.tabs.addTab(self.tab_warehouse, "📦 Склад")
 
         layout.addWidget(self.tabs)
 
@@ -136,6 +139,7 @@ class MainWindow(QMainWindow):
         self.tab_file.set_data(self.json_data)
         self.tab_global.set_data(self.json_data)
         self.tab_characters.set_data(self.json_data)
+        self.tab_warehouse.set_data(self.json_data)
 
         self.tabs.setCurrentIndex(0)
 
@@ -166,6 +170,7 @@ class MainWindow(QMainWindow):
             return
         self.tab_global.collect(self.json_data)
         self.tab_characters.collect(self.json_data)
+        self.tab_warehouse.collect(self.json_data)
 
     def _write_file(self, path: Path):
         try:
