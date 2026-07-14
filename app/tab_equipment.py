@@ -15,7 +15,9 @@ from PyQt6.QtWidgets import (
     QGroupBox, QGridLayout,
 )
 from PyQt6.QtCore import Qt, QSettings
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QFrame
+
+from app.field_config import ITEM_SECONDARY_FIELDS
 
 
 def is_enemy_item(key: str) -> bool:
@@ -434,35 +436,69 @@ class _FactionSubTab(QWidget):
         self._build_fields(item_data)
 
     def _build_fields(self, data: dict):
-        """Построить поля формы."""
+        """Построить поля формы, разделив на основную и дополнительную секции."""
         self._clear_form()
         self._fields.clear()
 
-        for key, value in data.items():
-            if isinstance(value, bool):
-                w = QComboBox()
-                w.addItems(["false", "true"])
-                w.setCurrentText(str(value).lower())
-            elif isinstance(value, int):
-                w = QSpinBox()
-                w.setRange(-999999999, 999999999)
-                w.setValue(value)
-            elif isinstance(value, float):
-                w = QDoubleSpinBox()
-                w.setRange(-999999999, 999999999)
-                w.setDecimals(4)
-                w.setValue(value)
-            elif isinstance(value, str):
-                w = QLineEdit(value)
-            elif value is None:
-                w = QLineEdit("null")
-            elif isinstance(value, (dict, list)):
-                w = QLineEdit(json.dumps(value, ensure_ascii=False))
+        primary_keys = []
+        secondary_keys = []
+        for key in data.keys():
+            if key in ITEM_SECONDARY_FIELDS:
+                secondary_keys.append(key)
             else:
-                w = QLineEdit(str(value))
+                primary_keys.append(key)
 
+        # Первая секция (основные поля)
+        first = True
+        for key in primary_keys:
+            value = data[key]
+            w = self._make_widget(value)
             self.form_layout.addRow(f"{key}:", w)
             self._fields[key] = w
+
+        # Разделитель
+        if secondary_keys:
+            line = QFrame()
+            line.setFrameShape(QFrame.Shape.HLine)
+            line.setFrameShadow(QFrame.Shadow.Sunken)
+            self.form_layout.addRow(line)
+
+            label = QLabel("Визуальные / текстовые поля")
+            label.setStyleSheet("font-weight: bold; color: #666; padding: 4px 0;")
+            self.form_layout.addRow(label)
+
+            # Вторая секция (визуальные/текстовые поля)
+            for key in secondary_keys:
+                value = data[key]
+                w = self._make_widget(value)
+                self.form_layout.addRow(f"{key}:", w)
+                self._fields[key] = w
+
+    def _make_widget(self, value):
+        if isinstance(value, bool):
+            w = QComboBox()
+            w.addItems(["false", "true"])
+            w.setCurrentText(str(value).lower())
+            return w
+        elif isinstance(value, int):
+            w = QSpinBox()
+            w.setRange(-999999999, 999999999)
+            w.setValue(value)
+            return w
+        elif isinstance(value, float):
+            w = QDoubleSpinBox()
+            w.setRange(-999999999, 999999999)
+            w.setDecimals(4)
+            w.setValue(value)
+            return w
+        elif isinstance(value, str):
+            return QLineEdit(value)
+        elif value is None:
+            return QLineEdit("null")
+        elif isinstance(value, (dict, list)):
+            return QLineEdit(json.dumps(value, ensure_ascii=False))
+        else:
+            return QLineEdit(str(value))
 
     def _sync_duplicates(self, base_key: str, field_changes: dict):
         """Синхронизировать изменения с дублями."""
