@@ -7,7 +7,7 @@ from typing import Optional
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
-    QLabel, QLineEdit, QSpinBox, QPushButton,
+    QLabel, QLineEdit, QSpinBox, QDoubleSpinBox, QPushButton,
     QScrollArea, QSplitter, QListWidget, QListWidgetItem,
     QMessageBox, QTabWidget,
 )
@@ -89,8 +89,12 @@ class BuildingsTab(QWidget):
                 return
 
         try:
+            import re
             with open(path, "r", encoding="utf-8") as f:
-                self.json_data = json.load(f)
+                content = f.read()
+            # Убираем trailing commas перед ] или }
+            content = re.sub(r',(\s*[\]}])', r'\1', content)
+            self.json_data = json.loads(content)
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить:\n{e}")
             return
@@ -142,18 +146,22 @@ class BuildingsTab(QWidget):
             # Hospital.boosterPercent
             hospital = boosters.get("Hospital", {})
             if isinstance(hospital, dict) and "boosterPercent" in hospital:
-                w = QSpinBox()
-                w.setRange(0, 1000)
-                w.setValue(int(hospital["boosterPercent"]))
+                w = QDoubleSpinBox()
+                w.setRange(-10, 100)
+                w.setDecimals(2)
+                w.setSingleStep(0.05)
+                w.setValue(float(hospital["boosterPercent"]))
                 form.addRow("📈 Больница (boosterPercent):", w)
                 self._widgets["boosters.Hospital.boosterPercent"] = w
 
             # Saloon.boosterPercent
             saloon = boosters.get("Saloon", {})
             if isinstance(saloon, dict) and "boosterPercent" in saloon:
-                w = QSpinBox()
-                w.setRange(0, 1000)
-                w.setValue(int(saloon["boosterPercent"]))
+                w = QDoubleSpinBox()
+                w.setRange(-10, 100)
+                w.setDecimals(2)
+                w.setSingleStep(0.05)
+                w.setValue(float(saloon["boosterPercent"]))
                 form.addRow("📈 Салон (boosterPercent):", w)
                 self._widgets["boosters.Saloon.boosterPercent"] = w
 
@@ -229,7 +237,12 @@ class BuildingsTab(QWidget):
                 booster_name = parts[1]
                 field = parts[2]
                 booster = self.json_data.setdefault("boosters", {}).setdefault(booster_name, {})
-                booster[field] = widget.value() if isinstance(widget, QSpinBox) else widget.text()
+                if isinstance(widget, QDoubleSpinBox):
+                    booster[field] = widget.value()
+                elif isinstance(widget, QSpinBox):
+                    booster[field] = widget.value()
+                else:
+                    booster[field] = widget.text()
 
             elif parts[0] == "statuses" and len(parts) >= 3:
                 status_name = parts[1]
