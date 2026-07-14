@@ -21,6 +21,7 @@ from app.tab_characters import CharactersTab
 from app.tab_warehouse import WarehouseTab
 from app.tab_rawfile import RawFileTab
 from app.tab_equipment import EquipmentTab
+from app.tab_weapons import WeaponsTab
 
 
 class MainWindow(QMainWindow):
@@ -56,12 +57,14 @@ class MainWindow(QMainWindow):
         self.tab_warehouse = WarehouseTab()
         self.tab_rawfile = RawFileTab()
         self.tab_equipment = EquipmentTab()
+        self.tab_weapons = WeaponsTab()
 
         self.tabs.addTab(self.tab_file, "📁 Выбор файла")
         self.tabs.addTab(self.tab_global, "🌍 Глобальные параметры")
         self.tabs.addTab(self.tab_characters, "👤 Редактор персонажей")
         self.tabs.addTab(self.tab_warehouse, "📦 Склад")
         self.tabs.addTab(self.tab_equipment, "⚙ Оборудование")
+        self.tabs.addTab(self.tab_weapons, "🔫 Оружие")
         self.tabs.addTab(self.tab_rawfile, "📄 Файл")
 
         layout.addWidget(self.tabs)
