@@ -10,81 +10,86 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import pyqtSignal, QSettings
 
+from app.localization import load_localization
+
 
 class FileTab(QWidget):
     """Вкладка для выбора папок и открытия файла сохранения."""
 
     file_opened = pyqtSignal(Path)
+    localization_loaded = pyqtSignal(dict)  # словарь ключ->значение
 
     def __init__(self):
         super().__init__()
         self.json_data: dict | None = None
+        self.localization: dict[str, str] = {}
         self.settings = QSettings("SPARTA Tools", "SPARTA Save Editor")
         self.saves_folder: str = self.settings.value("saves_folder", "")
         self.game_folder: str = self.settings.value("game_folder", "")
+        self.locale_folder: str = self.settings.value("locale_folder", "")
 
         self._setup_ui()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
 
-        # Краткое описание
-        layout.addWidget(QLabel("Настройте пути к папкам и откройте файл сохранения:"))
+        layout.addWidget(QLabel("Настройте пути к папкам:"))
 
-        # Строка 1: папка сохранений
         row1 = QHBoxLayout()
-        btn_saves = QPushButton("📁 Выбор папки с сохранениями")
-        btn_saves.setMinimumHeight(36)
+        btn_saves = QPushButton("📁 Папка с сохранениями")
+        btn_saves.setMinimumHeight(34)
         btn_saves.clicked.connect(self._select_saves_folder)
         row1.addWidget(btn_saves)
-
         self.label_saves = QLabel(self.saves_folder if self.saves_folder else "Не указана")
         self.label_saves.setStyleSheet("color: #888; font-size: 11px;")
         row1.addWidget(self.label_saves, 1)
         layout.addLayout(row1)
 
-        # Строка 2: папка игры
         row2 = QHBoxLayout()
-        btn_game = QPushButton("🎮 Выбор папки с игрой")
-        btn_game.setMinimumHeight(36)
+        btn_game = QPushButton("🎮 Папка с игрой")
+        btn_game.setMinimumHeight(34)
         btn_game.clicked.connect(self._select_game_folder)
         row2.addWidget(btn_game)
-
         self.label_game = QLabel(self.game_folder if self.game_folder else "Не указана")
         self.label_game.setStyleSheet("color: #888; font-size: 11px;")
         row2.addWidget(self.label_game, 1)
         layout.addLayout(row2)
 
-        # Разделитель
-        layout.addSpacing(16)
-
-        # Строка 3: кнопка открыть файл
+        # Строка 3: локализация
         row3 = QHBoxLayout()
-        self.btn_open = QPushButton("📂 Открыть файл сохранения")
-        self.btn_open.setMinimumHeight(40)
-        self.btn_open.clicked.connect(self._open_file)
-        row3.addWidget(self.btn_open)
-
-        self.label_path = QLabel("Файл не выбран")
-        self.label_path.setStyleSheet("color: #888; font-size: 12px;")
-        row3.addWidget(self.label_path, 1)
-
+        btn_locale = QPushButton("🌐 Папка с локализацией")
+        btn_locale.setMinimumHeight(34)
+        btn_locale.clicked.connect(self._select_locale_folder)
+        row3.addWidget(btn_locale)
+        self.label_locale = QLabel(self.locale_folder if self.locale_folder else "Не указана")
+        self.label_locale.setStyleSheet("color: #888; font-size: 11px;")
+        row3.addWidget(self.label_locale, 1)
         layout.addLayout(row3)
 
-        # Информация о загруженном файле
+        layout.addSpacing(12)
+
+        row4 = QHBoxLayout()
+        self.btn_open = QPushButton("📂 Открыть файл сохранения")
+        self.btn_open.setMinimumHeight(38)
+        self.btn_open.clicked.connect(self._open_file)
+        row4.addWidget(self.btn_open)
+        self.label_path = QLabel("Файл не выбран")
+        self.label_path.setStyleSheet("color: #888; font-size: 12px;")
+        row4.addWidget(self.label_path, 1)
+        layout.addLayout(row4)
+
         self.info_label = QLabel("")
-        self.info_label.setStyleSheet("color: #555; padding: 8px;")
+        self.info_label.setStyleSheet("color: #555; padding: 6px;")
         layout.addWidget(self.info_label)
 
         layout.addStretch()
 
-    # ---- Выбор папок ----
+    def get_localization(self) -> dict[str, str]:
+        return self.localization
 
     def _select_saves_folder(self):
         folder = QFileDialog.getExistingDirectory(
-            self, "Выберите папку с сохранениями",
-            self.saves_folder or "",
-        )
+            self, "Выберите папку с сохранениями", self.saves_folder or "")
         if not folder:
             return
         self.saves_folder = folder
@@ -94,25 +99,46 @@ class FileTab(QWidget):
 
     def _select_game_folder(self):
         folder = QFileDialog.getExistingDirectory(
-            self, "Выберите папку с игрой",
-            self.game_folder or "",
-        )
+            self, "Выберите папку с игрой", self.game_folder or "")
         if not folder:
             return
         self.game_folder = folder
         self.settings.setValue("game_folder", folder)
         self.label_game.setText(folder)
 
+    def _select_locale_folder(self):
+        # По умолчанию предлагаем путь от папки игры
+        default_path = ""
+        if self.game_folder:
+            default_path = str(
+                Path(self.game_folder) / "Sparta_Data" / "StreamingAssets" / "Localizations"
+            )
+        folder = QFileDialog.getExistingDirectory(
+            self, "Выберите папку с локализацией (Localizations)",
+            default_path or self.locale_folder or "",
+        )
+        if not folder:
+            return
+        self.locale_folder = folder
+        self.settings.setValue("locale_folder", folder)
+        self.label_locale.setText(folder)
+        self._load_localization(folder)
+
+    def _load_localization(self, folder: str):
+        self.localization = load_localization(folder)
+        count = len(self.localization)
+        self.info_label.setText(
+            f"✅ Загружено строк локализации: {count}"
+        )
+        self.localization_loaded.emit(self.localization)
+
     def _auto_open_mdb(self, folder: str):
         p = Path(folder)
         mdb_files = sorted(p.glob("*.mdb"))
         if not mdb_files:
-            QMessageBox.information(
-                self, "Файлы не найдены",
-                f"В папке '{folder}' не найдено .mdb файлов."
-            )
+            QMessageBox.information(self, "Файлы не найдены",
+                                    f"В папке '{folder}' не найдено .mdb файлов.")
             return
-
         if len(mdb_files) == 1:
             self._load_mdb(mdb_files[0])
         else:
@@ -139,19 +165,16 @@ class FileTab(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось открыть файл:\n{e}")
             return
-
         if not isinstance(self.json_data, dict):
             QMessageBox.critical(self, "Ошибка", "Файл должен содержать JSON-объект.")
             return
 
         self.label_path.setText(path.name)
-
         size = path.stat().st_size
         size_str = f"{size} Б" if size < 1024 else f"{size / 1024:.1f} КБ"
         self.info_label.setText(
             f"Файл: {path.name} | Размер: {size_str} | Разделов: {len(self.json_data)}"
         )
-
         self.file_opened.emit(path)
 
     def _open_file(self):
@@ -166,6 +189,4 @@ class FileTab(QWidget):
 
     def set_data(self, data: dict):
         self.json_data = data
-        self.info_label.setText(
-            f"Файл загружен | Разделов: {len(data)}"
-        )
+        self.info_label.setText(f"Файл загружен | Разделов: {len(data)}")

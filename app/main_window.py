@@ -6,22 +6,19 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import (
     QMainWindow, QFileDialog, QMessageBox, QStatusBar,
-    QVBoxLayout, QWidget, QTabWidget, QPushButton, QHBoxLayout,
-    QLabel, QLineEdit, QFormLayout, QGroupBox, QScrollArea,
-    QTableWidget, QTableWidgetItem, QHeaderView, QSpinBox,
-    QDoubleSpinBox, QCheckBox, QComboBox, QSplitter, QTextEdit,
+    QVBoxLayout, QWidget, QTabWidget,
     QMenuBar, QToolBar, QApplication,
 )
 from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtGui import QAction
 
 from app.tab_file import FileTab
 from app.tab_global import GlobalTab
 from app.tab_characters import CharactersTab
 from app.tab_warehouse import WarehouseTab
-from app.tab_rawfile import RawFileTab
 from app.tab_equipment import EquipmentTab
 from app.tab_weapons import WeaponsTab
+from app.tab_rawfile import RawFileTab
 
 
 class MainWindow(QMainWindow):
@@ -32,6 +29,7 @@ class MainWindow(QMainWindow):
 
         self.current_file: Path | None = None
         self.json_data: dict | None = None
+        self.localization: dict[str, str] = {}
 
         self._setup_ui()
         self._setup_menu()
@@ -40,24 +38,21 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("SPARTA Save Editor")
         self.resize(1280, 860)
 
-        # Центральный виджет
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
 
-        # Панель инструментов (открыть/сохранить)
         self._setup_toolbar()
 
-        # Табы
         self.tabs = QTabWidget()
 
         self.tab_file = FileTab()
         self.tab_global = GlobalTab()
         self.tab_characters = CharactersTab()
         self.tab_warehouse = WarehouseTab()
-        self.tab_rawfile = RawFileTab()
         self.tab_equipment = EquipmentTab()
         self.tab_weapons = WeaponsTab()
+        self.tab_rawfile = RawFileTab()
 
         self.tabs.addTab(self.tab_file, "📁 Выбор файла")
         self.tabs.addTab(self.tab_global, "🌍 Глобальные параметры")
@@ -74,8 +69,17 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("Готов")
 
-        # Подключаем сигналы от вкладок
+        # Сигналы
         self.tab_file.file_opened.connect(self._on_file_opened)
+        self.tab_file.localization_loaded.connect(self._on_localization_loaded)
+
+        # Начальное состояние: вкладки заблокированы (кроме 0)
+        self._set_tabs_enabled(False)
+
+    def _set_tabs_enabled(self, enabled: bool):
+        """Включить/выключить вкладки 1-3 (глобал, персонажи, склад)."""
+        for i in [1, 2, 3]:  # глобальные, персонажи, склад
+            self.tabs.setTabEnabled(i, enabled)
 
     def _setup_toolbar(self):
         toolbar = QToolBar("Основные")
@@ -121,6 +125,13 @@ class MainWindow(QMainWindow):
 
     # ---- Загрузка / сохранение ----
 
+    def _on_localization_loaded(self, loc: dict[str, str]):
+        self.localization = loc
+        # Передаём локализацию в Equipment и Weapons
+        self.tab_equipment.set_localization(loc)
+        self.tab_weapons.set_localization(loc)
+        self.status_bar.showMessage(f"Локализация: {len(loc)} строк", 3000)
+
     def _open_file(self):
         from PyQt6.QtCore import QSettings
         settings = QSettings("SPARTA Tools", "SPARTA Save Editor")
@@ -148,21 +159,20 @@ class MainWindow(QMainWindow):
         self.current_file = path
         self.status_bar.showMessage(f"Открыт: {path.name}")
 
-        # Обновляем все вкладки
         self.tab_file.set_data(self.json_data)
         self.tab_global.set_data(self.json_data)
         self.tab_characters.set_data(self.json_data)
         self.tab_warehouse.set_data(self.json_data)
         self.tab_rawfile.set_data(self.json_data)
 
+        # Разблокируем вкладки
+        self._set_tabs_enabled(True)
         self.tabs.setCurrentIndex(0)
 
     def _save_file(self):
         if self.current_file is None:
             self._save_as()
             return
-
-        # Собираем данные из вкладок
         self._collect_data()
         self._write_file(self.current_file)
 
@@ -176,13 +186,11 @@ class MainWindow(QMainWindow):
         )
         if not path:
             return
-
         self._collect_data()
         self.current_file = Path(path)
         self._write_file(self.current_file)
 
     def _collect_data(self):
-        """Собрать данные из всех вкладок обратно в json_data."""
         if self.json_data is None:
             return
         self.tab_global.collect(self.json_data)
@@ -198,5 +206,4 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить:\n{e}")
 
     def _on_file_opened(self, path: Path):
-        """Обработчик из вкладки 'Выбор файла'."""
         self._load_file(path)

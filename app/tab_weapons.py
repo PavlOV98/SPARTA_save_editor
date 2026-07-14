@@ -112,8 +112,14 @@ class WeaponsTab(QWidget):
         self.json_data: dict | None = None
         self.file_path: str | None = None
         self.weapons_dict: dict[str, dict] = {}
+        self._localization: dict[str, str] = {}
 
         self._setup_ui()
+
+    def set_localization(self, loc: dict[str, str]):
+        self._localization = loc
+        self.sparta_tab.set_localization(loc)
+        self.enemy_tab.set_localization(loc)
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -264,8 +270,12 @@ class _WeaponSubTab(QWidget):
         self._sync_enabled: bool = True
         self._base_to_dupes: dict[str, list[str]] = {}
         self._duplicate_keys: set = set()
+        self._localization: dict[str, str] = {}
 
         self._setup_ui()
+
+    def set_localization(self, loc: dict[str, str]):
+        self._localization = loc
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -355,6 +365,12 @@ class _WeaponSubTab(QWidget):
         self._sync_enabled = enabled
         self._populate_list(self.search_edit.text())
 
+    def _get_item_name(self, key: str, item: dict) -> str:
+        name_key = item.get("itemName", "")
+        if name_key and name_key in self._localization:
+            return self._localization[name_key]
+        return ""
+
     def _populate_list(self, filter_text: str = ""):
         self.item_list.blockSignals(True)
         self.item_list.clear()
@@ -369,7 +385,11 @@ class _WeaponSubTab(QWidget):
             item = self.items[key]
             wclass = item.get("weaponClass", "?")
             price = item.get("price", "?")
-            display = f"{key}  [{wclass}]  ({price}$)"
+            loc_name = self._get_item_name(key, item)
+            if loc_name:
+                display = f"{key} — {loc_name}  [{wclass}]  ({price}$)"
+            else:
+                display = f"{key}  [{wclass}]  ({price}$)"
             self.item_list.addItem(display)
             shown += 1
 
@@ -395,8 +415,13 @@ class _WeaponSubTab(QWidget):
             return
 
         self._current_key = key
-        self.item_name.setText(f"🗡 {key}")
-        self._build_fields(self.items[key])
+        item_data = self.items[key]
+        loc_name = self._get_item_name(key, item_data)
+        if loc_name:
+            self.item_name.setText(f"🗡 {key} — {loc_name}")
+        else:
+            self.item_name.setText(f"🗡 {key}")
+        self._build_fields(item_data)
 
     def _build_fields(self, data: dict):
         self._clear_form()
