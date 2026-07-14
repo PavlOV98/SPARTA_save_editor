@@ -107,8 +107,14 @@ class FileTab(QWidget):
         self.label_game.setText(folder)
 
     def _select_locale_file(self):
+        # По умолчанию открываем папку локализации от папки игры
+        default_dir = self.locale_file if self.locale_file else ""
+        if not default_dir and self.game_folder:
+            default_dir = str(
+                Path(self.game_folder) / "Sparta_Data" / "StreamingAssets" / "Localizations"
+            )
         path, _ = QFileDialog.getOpenFileName(
-            self, "Выберите файл локализации", "",
+            self, "Выберите файл локализации", default_dir,
             "Все файлы (*)",
         )
         if not path:
