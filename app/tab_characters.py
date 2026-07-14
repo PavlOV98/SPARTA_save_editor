@@ -207,7 +207,7 @@ class CharactersTab(QWidget):
         self.char_list.clear()
 
         if not self.characters_dict:
-            self.char_list.addItem("⚠ Персонажи не найдены")
+            self.char_list.addItem("! Персонажи не найдены")
             self.count_label.setText("Всего: 0")
             self.char_list.blockSignals(False)
             return
@@ -282,7 +282,7 @@ class CharactersTab(QWidget):
 
         prop = data.get("property")
         if not isinstance(prop, dict):
-            self.props_form.addRow(QLabel("⚠ property не найдено"))
+            self.props_form.addRow(QLabel("! property не найдено"))
             return
 
         for display_name, key, ptype in self.PROPERTY_FIELDS:
@@ -300,7 +300,7 @@ class CharactersTab(QWidget):
 
         slots = data.get("inventorySlots")
         if not isinstance(slots, dict):
-            self.slots_form.addRow(QLabel("⚠ inventorySlots не найдено"))
+            self.slots_form.addRow(QLabel("! inventorySlots не найдено"))
             return
 
         for display_name, key in self.SLOTS_FIELDS:
@@ -318,7 +318,7 @@ class CharactersTab(QWidget):
 
         stats = data.get("statistics")
         if not isinstance(stats, dict):
-            self.stats_form.addRow(QLabel("⚠ statistics не найдено"))
+            self.stats_form.addRow(QLabel("! statistics не найдено"))
             return
 
         for display_name, key, ptype in self.STATS_FIELDS:

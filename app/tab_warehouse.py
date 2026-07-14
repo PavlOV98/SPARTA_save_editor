@@ -112,7 +112,7 @@ class WarehouseTab(QWidget):
         self.item_list.clear()
 
         if not self.equipment_dict:
-            self.item_list.addItem("⚠ storedEquipment не найден или пуст")
+            self.item_list.addItem("! storedEquipment не найден или пуст")
             self.item_list.blockSignals(False)
             return
 
@@ -131,7 +131,7 @@ class WarehouseTab(QWidget):
             shown += 1
 
         if filter_text and shown == 0:
-            self.item_list.addItem(f"⚠ Ничего не найдено по запросу '{filter_text}'")
+            self.item_list.addItem(f"! Ничего не найдено по запросу '{filter_text}'")
 
         self.count_label.setText(
             f"Показано: {shown} | Всего: {len(self.equipment_dict)} предметов"
@@ -170,10 +170,10 @@ class WarehouseTab(QWidget):
             return
         text = item.text()
 
-        # Извлекаем ключ (формат: "[BOX]  ключ  xN")
-        if "[BOX]  " not in text:
+        # Извлекаем ключ (формат: "[BOX] key  xN")
+        if "[BOX] " not in text:
             return
-        after_icon = text[2:]  # убираем "[BOX]  "
+        after_icon = text[6:]  # убираем "[BOX] "
         # ключ до "  x"
         if "  x" in after_icon:
             key = after_icon.split("  x")[0]
