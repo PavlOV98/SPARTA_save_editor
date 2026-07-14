@@ -1,28 +1,22 @@
 """Главное окно редактора сохранений SPARTA 2035."""
 
 import json
-import os
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
-    QMainWindow,
-    QFileDialog,
-    QMessageBox,
-    QMenuBar,
-    QStatusBar,
-    QVBoxLayout,
-    QWidget,
-    QSplitter,
-    QTreeWidget,
-    QTreeWidgetItem,
-    QLineEdit,
-    QLabel,
-    QHBoxLayout,
-    QPushButton,
-    QTextEdit,
+    QMainWindow, QFileDialog, QMessageBox, QStatusBar,
+    QVBoxLayout, QWidget, QTabWidget, QPushButton, QHBoxLayout,
+    QLabel, QLineEdit, QFormLayout, QGroupBox, QScrollArea,
+    QTableWidget, QTableWidgetItem, QHeaderView, QSpinBox,
+    QDoubleSpinBox, QCheckBox, QComboBox, QSplitter, QTextEdit,
+    QMenuBar, QToolBar, QApplication,
 )
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QAction, QIcon
 
-from app.json_editor import JsonTreeWidget
+from app.tab_file import FileTab
+from app.tab_global import GlobalTab
+from app.tab_characters import CharactersTab
 
 
 class MainWindow(QMainWindow):
@@ -32,72 +26,66 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.current_file: Path | None = None
-        self.json_data: dict | list | None = None
+        self.json_data: dict | None = None
 
         self._setup_ui()
         self._setup_menu()
 
     def _setup_ui(self):
         self.setWindowTitle("SPARTA Save Editor")
-        self.resize(1200, 800)
+        self.resize(1280, 860)
 
+        # Центральный виджет
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
 
-        # Основной сплиттер: дерево JSON + панель редактирования
-        splitter = QSplitter()
+        # Панель инструментов (открыть/сохранить)
+        self._setup_toolbar()
 
-        # Дерево JSON
-        self.tree = JsonTreeWidget()
-        splitter.addWidget(self.tree)
+        # Табы
+        self.tabs = QTabWidget()
 
-        # Панель редактирования
-        editor_panel = QWidget()
-        editor_layout = QVBoxLayout(editor_panel)
+        self.tab_file = FileTab()
+        self.tab_global = GlobalTab()
+        self.tab_characters = CharactersTab()
 
-        editor_layout.addWidget(QLabel("Редактирование:"))
+        self.tabs.addTab(self.tab_file, "📁 Выбор файла")
+        self.tabs.addTab(self.tab_global, "🌍 Глобальные параметры")
+        self.tabs.addTab(self.tab_characters, "👤 Редактор персонажей")
 
-        self.key_label = QLabel("Ключ:")
-        editor_layout.addWidget(self.key_label)
-
-        self.value_edit = QLineEdit()
-        self.value_edit.setPlaceholderText("Значение...")
-        editor_layout.addWidget(self.value_edit)
-
-        btn_layout = QHBoxLayout()
-        apply_btn = QPushButton("Применить")
-        apply_btn.clicked.connect(self._apply_edit)
-        btn_layout.addWidget(apply_btn)
-
-        add_btn = QPushButton("Добавить поле")
-        add_btn.clicked.connect(self._add_field)
-        btn_layout.addWidget(add_btn)
-
-        remove_btn = QPushButton("Удалить поле")
-        remove_btn.clicked.connect(self._remove_field)
-        btn_layout.addWidget(remove_btn)
-
-        editor_layout.addLayout(btn_layout)
-        editor_layout.addStretch()
-
-        splitter.addWidget(editor_panel)
-        splitter.setSizes([700, 500])
-
-        layout.addWidget(splitter)
+        layout.addWidget(self.tabs)
 
         # Статус-бар
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("Готов")
 
-        # Подключение сигнала выбора в дереве
-        self.tree.itemClicked.connect(self._on_item_selected)
+        # Подключаем сигналы от вкладок
+        self.tab_file.file_opened.connect(self._on_file_opened)
+
+    def _setup_toolbar(self):
+        toolbar = QToolBar("Основные")
+        toolbar.setIconSize(QSize(24, 24))
+        self.addToolBar(toolbar)
+
+        open_action = QAction("📂 Открыть", self)
+        open_action.setShortcut("Ctrl+O")
+        open_action.triggered.connect(self._open_file)
+        toolbar.addAction(open_action)
+
+        save_action = QAction("💾 Сохранить", self)
+        save_action.setShortcut("Ctrl+S")
+        save_action.triggered.connect(self._save_file)
+        toolbar.addAction(save_action)
+
+        save_as_action = QAction("💾 Сохранить как...", self)
+        save_as_action.setShortcut("Ctrl+Shift+S")
+        save_as_action.triggered.connect(self._save_as)
+        toolbar.addAction(save_as_action)
 
     def _setup_menu(self):
         menubar = self.menuBar()
-
-        # Файл
         file_menu = menubar.addMenu("Файл")
 
         open_action = file_menu.addAction("Открыть...")
@@ -118,15 +106,18 @@ class MainWindow(QMainWindow):
         exit_action.setShortcut("Ctrl+Q")
         exit_action.triggered.connect(self.close)
 
-    # ---- Обработчики ----
+    # ---- Загрузка / сохранение ----
 
     def _open_file(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Открыть файл сохранения", "", "JSON (*.json);;Все файлы (*)",
+            self, "Открыть файл сохранения", "",
+            "Сохранения (*.sav);;JSON (*.json);;Все файлы (*)",
         )
         if not path:
             return
+        self._load_file(Path(path))
 
+    def _load_file(self, path: Path):
         try:
             with open(path, "r", encoding="utf-8") as f:
                 self.json_data = json.load(f)
@@ -134,113 +125,56 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Ошибка", f"Не удалось открыть файл:\n{e}")
             return
 
-        self.current_file = Path(path)
-        self.tree.load_json(self.json_data)
-        self.status_bar.showMessage(f"Открыт: {path}")
+        if not isinstance(self.json_data, dict):
+            QMessageBox.critical(self, "Ошибка", "Файл должен содержать JSON-объект (dict).")
+            return
+
+        self.current_file = path
+        self.status_bar.showMessage(f"Открыт: {path.name}")
+
+        # Обновляем все вкладки
+        self.tab_file.set_data(self.json_data)
+        self.tab_global.set_data(self.json_data)
+        self.tab_characters.set_data(self.json_data)
+
+        self.tabs.setCurrentIndex(0)
 
     def _save_file(self):
         if self.current_file is None:
             self._save_as()
             return
 
+        # Собираем данные из вкладок
+        self._collect_data()
         self._write_file(self.current_file)
 
     def _save_as(self):
         path, _ = QFileDialog.getSaveFileName(
-            self, "Сохранить как", "", "JSON (*.json);;Все файлы (*)",
+            self, "Сохранить как", "",
+            "Сохранения (*.sav);;JSON (*.json);;Все файлы (*)",
         )
         if not path:
             return
+
+        self._collect_data()
         self.current_file = Path(path)
         self._write_file(self.current_file)
 
+    def _collect_data(self):
+        """Собрать данные из всех вкладок обратно в json_data."""
+        if self.json_data is None:
+            return
+        self.tab_global.collect(self.json_data)
+        self.tab_characters.collect(self.json_data)
+
     def _write_file(self, path: Path):
         try:
-            self.json_data = self.tree.to_dict()
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(self.json_data, f, ensure_ascii=False, indent=2)
             self.status_bar.showMessage(f"Сохранено: {path}")
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить:\n{e}")
 
-    def _on_item_selected(self, item: QTreeWidgetItem, _column: int):
-        """При выборе элемента показываем ключ и значение в панели редактора."""
-        key = item.data(0, JsonTreeWidget.RoleKey)
-        value = item.data(0, JsonTreeWidget.RoleValue)
-        is_container = item.data(0, JsonTreeWidget.RoleIsContainer)
-
-        if is_container:
-            self.key_label.setText(f"Ключ: {key}")
-            self.value_edit.setEnabled(False)
-            self.value_edit.setText("(объект / массив — редактируется в дереве)")
-        else:
-            self.key_label.setText(f"Ключ: {key}")
-            self.value_edit.setEnabled(True)
-            self.value_edit.setText(str(value) if value is not None else "")
-
-    def _apply_edit(self):
-        """Применить отредактированное значение."""
-        item = self.tree.currentItem()
-        if item is None:
-            return
-
-        is_container = item.data(0, JsonTreeWidget.RoleIsContainer)
-        if is_container:
-            return
-
-        new_value = self.value_edit.text()
-        key = item.data(0, JsonTreeWidget.RoleKey)
-        old_value = item.data(0, JsonTreeWidget.RoleValue)
-
-        # Пробуем преобразовать тип
-        converted = self._convert_value(new_value, old_value)
-        item.setData(0, JsonTreeWidget.RoleValue, converted)
-
-        # Обновляем отображение
-        item.setText(0, f"{key}: {converted}")
-        self.status_bar.showMessage(f"Поле '{key}' = {converted}")
-
-    def _add_field(self):
-        """Добавить новое поле (заглушка)."""
-        QMessageBox.information(
-            self, "Добавление поля",
-            "Выберите родительский объект в дереве, затем нажмите Добавить."
-        )
-
-    def _remove_field(self):
-        """Удалить выбранное поле."""
-        item = self.tree.currentItem()
-        if item is None:
-            return
-
-        parent = item.parent()
-        if parent is None:
-            QMessageBox.warning(self, "Ошибка", "Нельзя удалить корневой элемент.")
-            return
-
-        key = item.data(0, JsonTreeWidget.RoleKey)
-        reply = QMessageBox.question(
-            self, "Подтверждение",
-            f"Удалить поле '{key}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if reply == QMessageBox.StandardButton.Yes:
-            parent.removeChild(item)
-
-    @staticmethod
-    def _convert_value(text: str, original):
-        """Пытается привести строку к типу исходного значения."""
-        if isinstance(original, bool):
-            return text.lower() in ("true", "1", "да", "yes")
-        if isinstance(original, int):
-            try:
-                return int(text)
-            except ValueError:
-                return text
-        if isinstance(original, float):
-            try:
-                return float(text)
-            except ValueError:
-                return text
-        # строка или None
-        return text
+    def _on_file_opened(self, path: Path):
+        """Обработчик из вкладки 'Выбор файла'."""
+        self._load_file(path)
