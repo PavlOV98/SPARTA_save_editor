@@ -56,12 +56,12 @@ class MainWindow(QMainWindow):
         self.tab_file.file_opened.connect(self._on_file_opened)
         self.tab_file.localization_loaded.connect(self._on_localization_loaded)
 
-        self.tabs.addTab(self.tab_file, "📁 Выбор файла")
-        self.tabs.addTab(self.tab_global, "🌍 Глобальные параметры")
-        self.tabs.addTab(self.tab_characters, "👤 Редактор персонажей")
-        self.tabs.addTab(self.tab_warehouse, "📦 Склад")
-        self.tabs.addTab(self.tab_equipment, "⚙ Оборудование")
-        self.tabs.addTab(self.tab_weapons, "🔫 Оружие")
+        self.tabs.addTab(self.tab_file, "[FOLDER]  Выбор файла")
+        self.tabs.addTab(self.tab_global, "[GLOB]  Глобальные параметры")
+        self.tabs.addTab(self.tab_characters, "[CHAR]  Редактор персонажей")
+        self.tabs.addTab(self.tab_warehouse, "[BOX]  Склад")
+        self.tabs.addTab(self.tab_equipment, "[GEAR]  Оборудование")
+        self.tabs.addTab(self.tab_weapons, "[GUN]  Оружие")
 
         layout.addWidget(self.tabs)
 
@@ -90,17 +90,17 @@ class MainWindow(QMainWindow):
         toolbar.setIconSize(QSize(24, 24))
         self.addToolBar(toolbar)
 
-        open_action = QAction("📂 Открыть", self)
+        open_action = QAction("Открыть", self)
         open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self._open_file)
         toolbar.addAction(open_action)
 
-        save_action = QAction("💾 Сохранить", self)
+        save_action = QAction("Сохранить", self)
         save_action.setShortcut("Ctrl+S")
         save_action.triggered.connect(self._save_file)
         toolbar.addAction(save_action)
 
-        save_as_action = QAction("💾 Сохранить как...", self)
+        save_as_action = QAction("Сохранить как...", self)
         save_as_action.setShortcut("Ctrl+Shift+S")
         save_as_action.triggered.connect(self._save_as)
         toolbar.addAction(save_as_action)

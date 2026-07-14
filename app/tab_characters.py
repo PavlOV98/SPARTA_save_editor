@@ -129,7 +129,7 @@ class CharactersTab(QWidget):
 
         # Кнопки
         btn_layout = QHBoxLayout()
-        btn_apply = QPushButton("✅ Применить")
+        btn_apply = QPushButton("[OK]  Применить")
         btn_apply.clicked.connect(self._apply_current)
         btn_layout.addWidget(btn_apply)
 
@@ -222,7 +222,7 @@ class CharactersTab(QWidget):
                 display = f"{name} (Lvl {level})"
             else:
                 display = str(name)
-            self.char_list.addItem(f"👤 {display}")
+            self.char_list.addItem(f"[CHAR]  {display}")
 
         self.count_label.setText(f"Всего: {len(self.characters_dict)}")
         self.char_list.blockSignals(False)
@@ -243,7 +243,7 @@ class CharactersTab(QWidget):
         data = full_entry.get("data", full_entry)
 
         ident = full_entry.get("ident", self._current_key)
-        self.name_label.setText(f"👤 {ident}")
+        self.name_label.setText(f"[CHAR]  {ident}")
 
         # Заполняем вкладки
         self._fill_main(data)
@@ -437,7 +437,7 @@ class CharactersTab(QWidget):
                 self._on_char_selected(keys.index(self._current_key))
 
     def collect(self, data: dict):
-        """Ничего не делаем — работаем по references."""
+        """Ничего не делаем - работаем по references."""
         pass
 
     @staticmethod

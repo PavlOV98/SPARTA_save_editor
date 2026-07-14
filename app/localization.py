@@ -43,7 +43,7 @@ def load_localization(file_path: str | Path) -> dict[str, str]:
                     key = key.strip()
                     value = value.strip().strip('"').strip("'")
                     if key and value:
-                        # Если ключ повторяется — пропускаем (первый приоритет)
+                        # Если ключ повторяется - пропускаем (первый приоритет)
                         if key not in result:
                             result[key] = value
     except Exception:

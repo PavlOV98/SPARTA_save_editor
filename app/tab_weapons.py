@@ -29,14 +29,14 @@ def is_enemy_weapon(key: str) -> bool:
         "G9", "Asia", "ASIA", "Armada", "ARMADA", "Pirate",
         "HunterDrone",
     )
-    # Knife_Sparta_Shaman — исключение, это оружие Спарты
+    # Knife_Sparta_Shaman - исключение, это оружие Спарты
     if key.startswith("Knife_Sparta_Shaman"):
         return False
     for faction in enemy_factions:
         if faction in key:
             return True
 
-    # Суффикс _PC — враги
+    # Суффикс _PC - враги
     if key.endswith("_PC"):
         return True
 
@@ -62,14 +62,14 @@ def is_enemy_weapon(key: str) -> bool:
 def find_base_key(key: str, all_keys: set) -> str | None:
     """Найти базовое оружие для дубля с припиской PT/P/_TSPT."""
 
-    # _TSPT → _TS  (SniperRifle_TSPT → SniperRifle_TS)
+    # _TSPT -> _TS  (SniperRifle_TSPT -> SniperRifle_TS)
     if key.endswith("_TSPT"):
-        base = key[:-4] + "TS"  # _TSPT → _TS
+        base = key[:-4] + "TS"  # _TSPT -> _TS
         if base in all_keys:
             return base
 
-    # PT в середине: AssaultRiflePT1-5 → AssaultRifleT1-5
-    # PT на конце: GrenadeLauncherPT2 → GrenadeLauncherT2
+    # PT в середине: AssaultRiflePT1-5 -> AssaultRifleT1-5
+    # PT на конце: GrenadeLauncherPT2 -> GrenadeLauncherT2
     # Формат: XXXPT([number][-number])?
     m = re.match(r'^(.*?)PT(\d+(?:-\d+)?)$', key)
     if m:
@@ -83,10 +83,10 @@ def find_base_key(key: str, all_keys: set) -> str | None:
         if base2 in all_keys:
             return base2
 
-    # PT перед чем-то: AssaultRiflePT1-5 → AssaultRifleT1-5
+    # PT перед чем-то: AssaultRiflePT1-5 -> AssaultRifleT1-5
     # Уже обработано выше
 
-    # Пример: HandgunPT1 → HandgunT1
+    # Пример: HandgunPT1 -> HandgunT1
     m = re.match(r'^(.*?)PT(\d+)$', key)
     if m:
         prefix = m.group(1)
@@ -95,7 +95,7 @@ def find_base_key(key: str, all_keys: set) -> str | None:
         if base in all_keys:
             return base
 
-    # Knife_Sparta_PT1 → Knife_Sparta_T1
+    # Knife_Sparta_PT1 -> Knife_Sparta_T1
     m = re.match(r'^(.*)_PT(\d+)$', key)
     if m:
         prefix = m.group(1)
@@ -152,11 +152,11 @@ class WeaponsTab(QWidget):
         self.path_edit.setReadOnly(True)
         top_layout.addWidget(self.path_edit, 1)
 
-        btn_load = QPushButton("📂 Загрузить")
+        btn_load = QPushButton("[OPEN]  Загрузить")
         btn_load.clicked.connect(self._load_file)
         top_layout.addWidget(btn_load)
 
-        btn_auto = QPushButton("🔍 Из папки игры")
+        btn_auto = QPushButton("[SEARCH]  Из папки игры")
         btn_auto.clicked.connect(self._auto_find)
         top_layout.addWidget(btn_auto)
 
@@ -166,13 +166,13 @@ class WeaponsTab(QWidget):
         self.sparta_tab = _WeaponSubTab("Спарта", is_sparta=True)
         self.enemy_tab = _WeaponSubTab("Враги", is_sparta=False)
 
-        self.tabs.addTab(self.sparta_tab, "🛡 Спарта")
-        self.tabs.addTab(self.enemy_tab, "☠ Враги")
+        self.tabs.addTab(self.sparta_tab, "[SHIELD]  Спарта")
+        self.tabs.addTab(self.enemy_tab, "[SKULL]  Враги")
 
         layout.addWidget(self.tabs)
 
         btn_layout = QHBoxLayout()
-        btn_save = QPushButton("💾 Сохранить в файл")
+        btn_save = QPushButton("[SAVE]  Сохранить в файл")
         btn_save.clicked.connect(self._save_to_file)
         btn_layout.addWidget(btn_save)
 
@@ -222,7 +222,7 @@ class WeaponsTab(QWidget):
         self.enemy_tab.set_data(enemy_items, all_keys)
 
         self.status_label.setText(
-            f"✅ Загружено: {len(self.weapons_dict)} единиц "
+            f"[OK]  Загружено: {len(self.weapons_dict)} единиц "
             f"(Спарта: {len(sparta_items)}, Враги: {len(enemy_items)})"
         )
 
@@ -269,7 +269,7 @@ class WeaponsTab(QWidget):
             json_str = json.dumps(merged, ensure_ascii=False, indent=2)
             with open(self.file_path, "w", encoding="utf-8") as f:
                 f.write(json_str)
-            self.status_label.setText(f"✅ Сохранено: {self.file_path}")
+            self.status_label.setText(f"[OK]  Сохранено: {self.file_path}")
             QMessageBox.information(self, "Сохранено",
                                     f"Файл сохранён:\n{self.file_path}")
         except Exception as e:
@@ -301,7 +301,7 @@ class _WeaponSubTab(QWidget):
 
         if self.is_sparta:
             sync_row = QHBoxLayout()
-            self.sync_check = QCheckBox("🔄 Синхронизировать покупное и найденное")
+            self.sync_check = QCheckBox("[SYNC]  Синхронизировать покупное и найденное")
             self.sync_check.setChecked(True)
             self.sync_check.toggled.connect(self._on_sync_toggled)
             sync_row.addWidget(self.sync_check)
@@ -316,7 +316,7 @@ class _WeaponSubTab(QWidget):
 
         search_row = QHBoxLayout()
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("🔍 Поиск...")
+        self.search_edit.setPlaceholderText("[SEARCH]  Поиск...")
         self.search_edit.textChanged.connect(self._filter)
         search_row.addWidget(self.search_edit)
 
@@ -347,7 +347,7 @@ class _WeaponSubTab(QWidget):
         right_layout.addWidget(scroll)
 
         btn_layout = QHBoxLayout()
-        btn_apply = QPushButton("✅ Применить")
+        btn_apply = QPushButton("[OK]  Применить")
         btn_apply.clicked.connect(self._apply)
         btn_layout.addWidget(btn_apply)
 
@@ -406,7 +406,7 @@ class _WeaponSubTab(QWidget):
             price = item.get("price", "?")
             loc_name = self._get_item_name(key, item)
             if loc_name:
-                display = f"{key} — {loc_name}  [{wclass}]  ({price}$)"
+                display = f"{key} - {loc_name}  [{wclass}]  ({price}$)"
             else:
                 display = f"{key}  [{wclass}]  ({price}$)"
             item_w = QListWidgetItem(display)
@@ -438,9 +438,9 @@ class _WeaponSubTab(QWidget):
         item_data = self.items[key]
         loc_name = self._get_item_name(key, item_data)
         if loc_name:
-            self.item_name.setText(f"🗡 {key} — {loc_name}")
+            self.item_name.setText(f"[KNIFE]  {key} - {loc_name}")
         else:
-            self.item_name.setText(f"🗡 {key}")
+            self.item_name.setText(f"[KNIFE]  {key}")
         self._build_fields(item_data)
 
     def _build_fields(self, data: dict):
@@ -553,7 +553,7 @@ class _WeaponSubTab(QWidget):
         parent = self.window()
         if hasattr(parent, 'statusBar'):
             parent.statusBar().showMessage(
-                f"✅ {self._current_key} обновлён", 3000
+                f"[OK]  {self._current_key} обновлён", 3000
             )
 
     def _reset(self):

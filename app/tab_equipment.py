@@ -47,17 +47,17 @@ def is_enemy_item(key: str) -> bool:
 def find_base_key(key: str, all_keys: set) -> str | None:
     """Найти базовый (оригинальный) предмет для дубля с припиской P/PT/_loot.
 
-    Например: ArmorPlatePT1 → ArmorPlateT1, FragGrenadeP → FragGrenade.
-    Если базовый ключ не найден — возвращает None (не дубль).
+    Например: ArmorPlatePT1 -> ArmorPlateT1, FragGrenadeP -> FragGrenade.
+    Если базовый ключ не найден - возвращает None (не дубль).
     """
-    # _loot → база
+    # _loot -> база
     if key.endswith("_loot"):
         base = key[:-5]
         if base in all_keys:
             return base
 
-    # PT + число → T + число  (SpartaArmorPT1 → SpartaArmorT1)
-    # PT на конце → без PT   (ScanGrenadePT → ScanGrenade)
+    # PT + число -> T + число  (SpartaArmorPT1 -> SpartaArmorT1)
+    # PT на конце -> без PT   (ScanGrenadePT -> ScanGrenade)
     m = re.match(r'^(.*)PT(\d*)$', key)
     if m:
         prefix = m.group(1)
@@ -66,22 +66,22 @@ def find_base_key(key: str, all_keys: set) -> str | None:
         base = prefix + 'T' + num
         if base in all_keys:
             return base
-        # просто число (ScanGrenadePT → ScanGrenade нет T-варианта)
+        # просто число (ScanGrenadePT -> ScanGrenade нет T-варианта)
         if prefix in all_keys:
             return prefix
-        # число без T (MinePT2 → Mine2? нет, но MineT2 есть — уже проверили)
+        # число без T (MinePT2 -> Mine2? нет, но MineT2 есть - уже проверили)
         if num:
             base2 = prefix + num
             if base2 in all_keys:
                 return base2
 
-    # P на конце (FragGrenadeP → FragGrenade)
+    # P на конце (FragGrenadeP -> FragGrenade)
     if key.endswith('P') and not key.endswith('PT'):
         base = key[:-1]
         if base in all_keys:
             return base
 
-    # _PT1 → _T1 (MobileTurret_PT1 → MobileTurret_T1)
+    # _PT1 -> _T1 (MobileTurret_PT1 -> MobileTurret_T1)
     m = re.match(r'^(.*)_PT(\d*)$', key)
     if m:
         prefix = m.group(1)
@@ -151,11 +151,11 @@ class EquipmentTab(QWidget):
         self.path_edit.setReadOnly(True)
         top_layout.addWidget(self.path_edit, 1)
 
-        btn_load = QPushButton("📂 Загрузить")
+        btn_load = QPushButton("[OPEN]  Загрузить")
         btn_load.clicked.connect(self._load_file)
         top_layout.addWidget(btn_load)
 
-        btn_auto = QPushButton("🔍 Из папки игры")
+        btn_auto = QPushButton("[SEARCH]  Из папки игры")
         btn_auto.clicked.connect(self._auto_find)
         top_layout.addWidget(btn_auto)
 
@@ -165,13 +165,13 @@ class EquipmentTab(QWidget):
         self.sparta_tab = _FactionSubTab("Спарта", is_sparta=True)
         self.enemy_tab = _FactionSubTab("Враги", is_sparta=False)
 
-        self.tabs.addTab(self.sparta_tab, "🛡 Спарта")
-        self.tabs.addTab(self.enemy_tab, "☠ Враги")
+        self.tabs.addTab(self.sparta_tab, "[SHIELD]  Спарта")
+        self.tabs.addTab(self.enemy_tab, "[SKULL]  Враги")
 
         layout.addWidget(self.tabs)
 
         btn_layout = QHBoxLayout()
-        btn_save = QPushButton("💾 Сохранить в файл")
+        btn_save = QPushButton("[SAVE]  Сохранить в файл")
         btn_save.clicked.connect(self._save_to_file)
         btn_layout.addWidget(btn_save)
 
@@ -218,7 +218,7 @@ class EquipmentTab(QWidget):
         self.enemy_tab.set_data(enemy_items, all_keys)
 
         self.status_label.setText(
-            f"✅ Загружено: {len(self.equipment_dict)} предметов "
+            f"[OK]  Загружено: {len(self.equipment_dict)} предметов "
             f"(Спарта: {len(sparta_items)}, Враги: {len(enemy_items)})"
         )
 
@@ -264,7 +264,7 @@ class EquipmentTab(QWidget):
         try:
             with open(self.file_path, "w", encoding="utf-8") as f:
                 json.dump(merged, f, ensure_ascii=False, indent=2)
-            self.status_label.setText(f"✅ Сохранено: {self.file_path}")
+            self.status_label.setText(f"[OK]  Сохранено: {self.file_path}")
             QMessageBox.information(self, "Сохранено",
                                     f"Файл сохранён:\n{self.file_path}")
         except Exception as e:
@@ -297,7 +297,7 @@ class _FactionSubTab(QWidget):
         # Чекбокс синхронизации (только для Спарты)
         if self.is_sparta:
             sync_row = QHBoxLayout()
-            self.sync_check = QCheckBox("🔄 Синхронизировать покупное и найденное")
+            self.sync_check = QCheckBox("[SYNC]  Синхронизировать покупное и найденное")
             self.sync_check.setChecked(True)
             self.sync_check.toggled.connect(self._on_sync_toggled)
             sync_row.addWidget(self.sync_check)
@@ -313,7 +313,7 @@ class _FactionSubTab(QWidget):
 
         search_row = QHBoxLayout()
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("🔍 Поиск...")
+        self.search_edit.setPlaceholderText("[SEARCH]  Поиск...")
         self.search_edit.textChanged.connect(self._filter)
         search_row.addWidget(self.search_edit)
 
@@ -346,7 +346,7 @@ class _FactionSubTab(QWidget):
 
         # Кнопки
         btn_layout = QHBoxLayout()
-        btn_apply = QPushButton("✅ Применить")
+        btn_apply = QPushButton("[OK]  Применить")
         btn_apply.clicked.connect(self._apply)
         btn_layout.addWidget(btn_apply)
 
@@ -414,7 +414,7 @@ class _FactionSubTab(QWidget):
             # Локализованное название
             loc_name = self._get_item_name(key, item)
             if loc_name:
-                display = f"{key} — {loc_name}  [{item_type}]  ({price}$)"
+                display = f"{key} - {loc_name}  [{item_type}]  ({price}$)"
             else:
                 display = f"{key}  [{item_type}]  ({price}$)"
             item_w = QListWidgetItem(display)
@@ -447,9 +447,9 @@ class _FactionSubTab(QWidget):
         item_data = self.items[key]
         loc_name = self._get_item_name(key, item_data)
         if loc_name:
-            self.item_name.setText(f"📦 {key} — {loc_name}")
+            self.item_name.setText(f"[BOX]  {key} - {loc_name}")
         else:
-            self.item_name.setText(f"📦 {key}")
+            self.item_name.setText(f"[BOX]  {key}")
         self._build_fields(item_data)
 
     SPECIAL_KEYS = {"armorSettings", "abilitiesSettings", "characterProperty", "AbilitiesSettings"}
@@ -591,7 +591,7 @@ class _FactionSubTab(QWidget):
         parent = self.window()
         if hasattr(parent, 'statusBar'):
             parent.statusBar().showMessage(
-                f"✅ {self._current_key} обновлён", 3000
+                f"[OK]  {self._current_key} обновлён", 3000
             )
 
     def _reset(self):

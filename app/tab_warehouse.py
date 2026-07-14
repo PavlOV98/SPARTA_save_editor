@@ -12,7 +12,7 @@ from PyQt6.QtGui import QFont
 
 
 class WarehouseTab(QWidget):
-    """Вкладка склада — storedEquipment: {ключ: количество}."""
+    """Вкладка склада - storedEquipment: {ключ: количество}."""
 
     def __init__(self):
         super().__init__()
@@ -72,7 +72,7 @@ class WarehouseTab(QWidget):
 
         # Кнопки
         btn_layout = QHBoxLayout()
-        btn_apply = QPushButton("✅ Применить")
+        btn_apply = QPushButton("[OK]  Применить")
         btn_apply.clicked.connect(self._apply_current)
         btn_layout.addWidget(btn_apply)
 
@@ -80,7 +80,7 @@ class WarehouseTab(QWidget):
         btn_reset.clicked.connect(self._reset_current)
         btn_layout.addWidget(btn_reset)
 
-        btn_delete = QPushButton("🗑 Удалить")
+        btn_delete = QPushButton("[DEL]  Удалить")
         btn_delete.clicked.connect(self._delete_item)
         btn_layout.addWidget(btn_delete)
 
@@ -126,8 +126,8 @@ class WarehouseTab(QWidget):
             if filter_text and filter_text.lower() not in key.lower():
                 continue
 
-            display = f"{key}  ×{count}"
-            self.item_list.addItem(f"📦 {display}")
+            display = f"{key}  x{count}"
+            self.item_list.addItem(f"[BOX]  {display}")
             shown += 1
 
         if filter_text and shown == 0:
@@ -170,13 +170,13 @@ class WarehouseTab(QWidget):
             return
         text = item.text()
 
-        # Извлекаем ключ (формат: "📦 ключ  ×N")
-        if "📦 " not in text:
+        # Извлекаем ключ (формат: "[BOX]  ключ  xN")
+        if "[BOX]  " not in text:
             return
-        after_icon = text[2:]  # убираем "📦 "
-        # ключ до "  ×"
-        if "  ×" in after_icon:
-            key = after_icon.split("  ×")[0]
+        after_icon = text[2:]  # убираем "[BOX]  "
+        # ключ до "  x"
+        if "  x" in after_icon:
+            key = after_icon.split("  x")[0]
         else:
             key = after_icon
 
@@ -186,7 +186,7 @@ class WarehouseTab(QWidget):
         self._current_key = key
         self.key_edit.setText(key)
         self.count_spin.setValue(self.equipment_dict[key])
-        self.item_name_label.setText(f"📦 {key}")
+        self.item_name_label.setText(f"[BOX]  {key}")
 
     def _apply_current(self):
         """Применить изменения."""
@@ -196,7 +196,7 @@ class WarehouseTab(QWidget):
         self.equipment_dict[self._current_key] = self.count_spin.value()
         self._populate_list(self.search_edit.text())
         self._update_total()
-        self.status_message(f"✅ {self._current_key} = {self.count_spin.value()}")
+        self.status_message(f"[OK]  {self._current_key} = {self.count_spin.value()}")
 
     def _reset_current(self):
         """Сбросить."""
@@ -221,7 +221,7 @@ class WarehouseTab(QWidget):
             self.item_name_label.setText("Предмет не выбран")
             self._populate_list(self.search_edit.text())
             self._update_total()
-            self.status_message(f"🗑 Предмет удалён")
+            self.status_message(f"[DEL]  Предмет удалён")
 
     def status_message(self, msg: str):
         """Показать сообщение в статусе (через родительское окно)."""
@@ -231,5 +231,5 @@ class WarehouseTab(QWidget):
             parent.statusBar().showMessage(msg, 3000)
 
     def collect(self, data: dict):
-        """Сохраняем данные — None, т.к. работаем по references."""
+        """Сохраняем данные - None, т.к. работаем по references."""
         pass
