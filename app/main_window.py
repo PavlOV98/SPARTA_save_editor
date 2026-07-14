@@ -1,5 +1,6 @@
 """Главное окно редактора сохранений SPARTA 2035."""
 
+from __future__ import annotations
 import json
 from pathlib import Path
 

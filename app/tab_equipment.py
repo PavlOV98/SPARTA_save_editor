@@ -1,5 +1,6 @@
 """Вкладка редактирования ItemModuleConfig.json (предметы/оборудование)."""
 
+from __future__ import annotations
 import json
 import os
 from pathlib import Path
@@ -11,6 +12,7 @@ from PyQt6.QtWidgets import (
     QMessageBox, QTabWidget, QTextEdit, QComboBox, QCheckBox,
     QGroupBox, QGridLayout,
 )
+from typing import Optional
 from PyQt6.QtCore import Qt, QSettings
 from PyQt6.QtGui import QFont
 
@@ -97,7 +99,7 @@ class EquipmentTab(QWidget):
 
         layout.addLayout(btn_layout)
 
-    def _load_file(self, path: str | None = None):
+    def _load_file(self, path: Optional[str] = None):
         """Загрузить файл ItemModuleConfig."""
         if not path:
             from PyQt6.QtWidgets import QFileDialog

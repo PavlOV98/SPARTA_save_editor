@@ -1,8 +1,6 @@
-"""Вкладка редактора персонажей SPARTA 2035.
+"""Вкладка редактора персонажей SPARTA 2035."""
 
-Структура: characters → {key} → data → {level, exp, property, statistics, ...}
-"""
-
+from __future__ import annotations
 import json
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,

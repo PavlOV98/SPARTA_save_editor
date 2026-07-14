@@ -1,5 +1,6 @@
 """Вкладка склада (storedEquipment как словарь ключ->количество)."""
 
+from __future__ import annotations
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLabel, QLineEdit, QSpinBox, QPushButton,

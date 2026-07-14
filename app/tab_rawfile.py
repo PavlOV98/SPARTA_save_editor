@@ -1,5 +1,6 @@
 """Вкладка файла с деревом JSON (сворачиваемое) и редактированием."""
 
+from __future__ import annotations
 import json
 
 from PyQt6.QtWidgets import (

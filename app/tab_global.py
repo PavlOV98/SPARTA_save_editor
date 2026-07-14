@@ -1,5 +1,6 @@
 """Вкладка глобальных параметров сохранения SPARTA 2035."""
 
+from __future__ import annotations
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox,
     QLabel, QLineEdit, QSpinBox, QPushButton,
