@@ -112,9 +112,12 @@ class MainWindow(QMainWindow):
     # ---- Загрузка / сохранение ----
 
     def _open_file(self):
+        from PyQt6.QtCore import QSettings
+        settings = QSettings("SPARTA Tools", "SPARTA Save Editor")
+        default_dir = settings.value("saves_folder", "")
         path, _ = QFileDialog.getOpenFileName(
-            self, "Открыть файл сохранения", "",
-            "Сохранения (*.sav);;JSON (*.json);;Все файлы (*)",
+            self, "Открыть файл сохранения", default_dir,
+            "Сохранения (*.mdb);;JSON (*.json);;Все файлы (*)",
         )
         if not path:
             return
@@ -153,9 +156,12 @@ class MainWindow(QMainWindow):
         self._write_file(self.current_file)
 
     def _save_as(self):
+        from PyQt6.QtCore import QSettings
+        settings = QSettings("SPARTA Tools", "SPARTA Save Editor")
+        default_dir = settings.value("saves_folder", "")
         path, _ = QFileDialog.getSaveFileName(
-            self, "Сохранить как", "",
-            "Сохранения (*.sav);;JSON (*.json);;Все файлы (*)",
+            self, "Сохранить как", default_dir,
+            "Сохранения (*.mdb);;JSON (*.json);;Все файлы (*)",
         )
         if not path:
             return
