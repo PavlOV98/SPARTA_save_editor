@@ -18,7 +18,6 @@ from app.tab_characters import CharactersTab
 from app.tab_warehouse import WarehouseTab
 from app.tab_equipment import EquipmentTab
 from app.tab_weapons import WeaponsTab
-from app.tab_rawfile import RawFileTab
 
 
 class MainWindow(QMainWindow):
@@ -52,7 +51,6 @@ class MainWindow(QMainWindow):
         self.tab_warehouse = WarehouseTab()
         self.tab_equipment = EquipmentTab()
         self.tab_weapons = WeaponsTab()
-        self.tab_rawfile = RawFileTab()
 
         # Подключаем сигналы ДО авто-загрузки
         self.tab_file.file_opened.connect(self._on_file_opened)
@@ -64,7 +62,6 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.tab_warehouse, "📦 Склад")
         self.tabs.addTab(self.tab_equipment, "⚙ Оборудование")
         self.tabs.addTab(self.tab_weapons, "🔫 Оружие")
-        self.tabs.addTab(self.tab_rawfile, "📄 Файл")
 
         layout.addWidget(self.tabs)
 
@@ -170,7 +167,6 @@ class MainWindow(QMainWindow):
         self.tab_global.set_data(self.json_data)
         self.tab_characters.set_data(self.json_data)
         self.tab_warehouse.set_data(self.json_data)
-        self.tab_rawfile.set_data(self.json_data)
 
         # Разблокируем вкладки
         self._set_tabs_enabled(True)
