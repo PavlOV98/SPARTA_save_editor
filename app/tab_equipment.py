@@ -15,7 +15,8 @@ from PyQt6.QtWidgets import (
     QGroupBox, QGridLayout,
 )
 from PyQt6.QtCore import Qt, QSettings
-from PyQt6.QtGui import QFont, QFrame
+from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QFrame
 
 from app.field_config import ITEM_SECONDARY_FIELDS
 
