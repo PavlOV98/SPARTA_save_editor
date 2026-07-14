@@ -29,21 +29,36 @@ class JsonTree(QTreeWidget):
         self.setHeaderLabels(["Ключ", "Значение"])
         self.setColumnCount(2)
         self.setAlternatingRowColors(True)
-        self.setAnimated(True)
+        self.setAnimated(False)
         self.setColumnWidth(0, 350)
         self.setExpandsOnDoubleClick(True)
 
     def load_json(self, data: dict):
         self.clear()
+        self.setUpdatesEnabled(False)
         root = self.invisibleRootItem()
 
         for key, value in data.items():
             item = self._build_item(key, value)
             root.addChild(item)
 
-        self.expandAll()
+        # Разворачиваем только первый уровень (чтобы избежать краха)
+        for i in range(root.childCount()):
+            child = root.child(i)
+            if child.childCount() > 0:
+                self.expandItem(child)
+        self.setUpdatesEnabled(True)
 
-    def _build_item(self, key: str, value) -> QTreeWidgetItem:
+    MAX_DEPTH = 50
+
+    def _build_item(self, key: str, value, _depth: int = 0) -> QTreeWidgetItem:
+        if _depth > self.MAX_DEPTH:
+            item = QTreeWidgetItem([str(key), "... (мах глубина)"])
+            item.setData(0, ROLE_KEY, key)
+            item.setData(0, ROLE_VALUE, str(value)[:200])
+            item.setData(0, ROLE_IS_CONTAINER, False)
+            return item
+
         if isinstance(value, dict):
             item = QTreeWidgetItem([str(key), f"{{{len(value)} полей}}"])
             item.setData(0, ROLE_KEY, key)
@@ -54,7 +69,7 @@ class JsonTree(QTreeWidget):
                 QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator
             )
             for k, v in value.items():
-                child = self._build_item(k, v)
+                child = self._build_item(k, v, _depth + 1)
                 item.addChild(child)
 
         elif isinstance(value, list):
@@ -67,7 +82,7 @@ class JsonTree(QTreeWidget):
                 QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator
             )
             for i, v in enumerate(value):
-                child = self._build_item(f"[{i}]", v)
+                child = self._build_item(f"[{i}]", v, _depth + 1)
                 item.addChild(child)
 
         else:
