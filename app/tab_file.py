@@ -30,6 +30,10 @@ class FileTab(QWidget):
 
         self._setup_ui()
 
+        # Авто-загрузка локализации при старте
+        if self.locale_file and Path(self.locale_file).is_file():
+            self._load_localization(self.locale_file)
+
     def _setup_ui(self):
         layout = QVBoxLayout(self)
 
